@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import com.kakaotechbootcamp.community.common.SoftDeletable;
 
 import java.time.LocalDateTime;
 
@@ -15,14 +16,14 @@ import java.time.LocalDateTime;
 @Table(name = "`user`") // 예약어 충돌 방지
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
-public class User {
+public class User implements SoftDeletable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     private Integer id;
     
-    @Column(length = 100, nullable = false, unique = true)
+    @Column(length = 320, nullable = false, unique = true)
     private String email;
 
     @Column(length = 255, nullable = false)
@@ -63,5 +64,10 @@ public class User {
 
     public void updateProfileImageKey(String profileImageKey) {
         this.profileImageKey = profileImageKey;
+    }
+
+    @Override
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
     }
 }
