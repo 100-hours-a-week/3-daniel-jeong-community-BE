@@ -23,7 +23,7 @@ public class UserCreateRequestDto {
 	@NotBlank
 	@Size(min = 8, max = 255)
 	@Pattern(
-			regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=[\\]{};':\\\"\\\\|,.<>/?])(?!.*\\s)(?!.*(.)\\1{2,}).*$",
+			regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[!@#$%^&*()_+=\\[\\]{};':\\\"\\\\|,.<>/?-])(?!.*\\s)(?!.*(.)\\1{2,}).*$",
 			message = "영문, 숫자, 특수문자가 필요합니다"
 	)
 	private String password;
