@@ -6,7 +6,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
-
+import com.kakaotechbootcamp.community.exception.BadRequestException;
 import com.kakaotechbootcamp.community.exception.ConflictException;
 import com.kakaotechbootcamp.community.exception.NotFoundException;
 
@@ -25,6 +25,13 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.badRequest(errors));
     }
 
+    // 400: 잘못된 요청 (Bad Request)
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiResponse<String>> handleBadRequestException(BadRequestException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.badRequest(e.getMessage()));
+    }
+        
     // 401: 인증 실패
     @ExceptionHandler(HttpClientErrorException.Unauthorized.class)
     public ResponseEntity<ApiResponse<String>> handleUnauthorizedException(HttpClientErrorException.Unauthorized e) {

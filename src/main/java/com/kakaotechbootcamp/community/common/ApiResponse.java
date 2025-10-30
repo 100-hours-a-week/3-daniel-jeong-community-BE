@@ -28,6 +28,7 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> deleted(T data) {
         return new ApiResponse<>(true, HttpStatus.OK.value(), ApiMessage.DELETED.getMessage(), data);
     }
+    
     public static <T> ApiResponse<T> badRequest(T data) {
         return new ApiResponse<>(false, HttpStatus.BAD_REQUEST.value(), ApiMessage.BAD_REQUEST.getMessage(), data);
     }
