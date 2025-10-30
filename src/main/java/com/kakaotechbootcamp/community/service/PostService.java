@@ -2,7 +2,6 @@ package com.kakaotechbootcamp.community.service;
 
 import com.kakaotechbootcamp.community.common.ApiResponse;
 import com.kakaotechbootcamp.community.dto.post.*;
-import com.kakaotechbootcamp.community.dto.user.UserReferenceDto;
 import com.kakaotechbootcamp.community.entity.*;
 import com.kakaotechbootcamp.community.exception.NotFoundException;
 import com.kakaotechbootcamp.community.repository.*;
@@ -30,6 +29,7 @@ public class PostService {
     private final PostStatRepository postStatRepository;
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
+    private final PostStatAsyncService postStatAsyncService;
 
     /**
      * 게시글 목록 조회(커서 기반)
@@ -52,7 +52,7 @@ public class PostService {
         List<Integer> postIds = posts.stream().map(Post::getId).toList();
         Map<Integer, PostStat> postIdToStat = new HashMap<>();
         if (!postIds.isEmpty()) {
-            postStatRepository.findByIdIn(postIds).forEach(stat -> postIdToStat.put(stat.getId(), stat));
+            postStatRepository.findAllById(postIds).forEach(stat -> postIdToStat.put(stat.getId(), stat));
         }
 
         List<PostListItemDto> items = PostListItemDto.from(posts, postIdToStat);
@@ -72,20 +72,20 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글을 찾을 수 없습니다"));
 
-        // lazy load user for author
-        UserReferenceDto.from(post.getUser());
-
         List<PostImage> images = postImageRepository.findByPostIdOrderByDisplayOrderAsc(postId);
         PostStat stat = postStatRepository.findById(postId).orElseGet(() -> new PostStat(post));
 
-        // 조회수 증가
-        stat.incrementViewCount();
-        postStatRepository.save(stat);
+        // 조회수 증가: 비동기 처리
+        postStatAsyncService.incrementViewCount(postId);
 
         // 댓글 + 작성자
         List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAscWithUser(postId);
 
-        return ApiResponse.modified(PostDetailDto.from(post, images, stat, comments));
+        // 응답에는 증가된 값으로 표현
+        PostStat responseStat = new PostStat(post, stat.getLikeCount(), stat.getCommentCount());
+        // viewCount는 +1 보정
+        responseStat.incrementViewCount();
+        return ApiResponse.modified(PostDetailDto.from(post, images, responseStat, comments));
     }
 
     /**
@@ -145,9 +145,11 @@ public class PostService {
 
             List<String> keys = request.getImageObjectKeys();
             if (!keys.isEmpty()) {
+                List<PostImage> newImages = new java.util.ArrayList<>(keys.size());
                 for (int i = 0; i < keys.size(); i++) {
-                    postImageRepository.save(new PostImage(post, keys.get(i), i));
+                    newImages.add(new PostImage(post, keys.get(i), i));
                 }
+                postImageRepository.saveAll(newImages);
             }
         }
 
