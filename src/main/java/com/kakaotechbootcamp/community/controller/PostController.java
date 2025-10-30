@@ -9,6 +9,7 @@ import com.kakaotechbootcamp.community.service.PostService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 게시글(Post) API 컨트롤러
@@ -18,13 +19,10 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/posts")
+@RequiredArgsConstructor
 public class PostController {
 
     private final PostService postService;
-
-    public PostController(PostService postService) {
-        this.postService = postService;
-    }
 
     /**
      * 게시글 목록 조회 (커서 기반 페이지네이션)
