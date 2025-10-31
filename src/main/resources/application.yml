@@ -9,6 +9,25 @@ spring:
       hibernate:
         format_sql: true
 
+  servlet:
+    multipart:
+      max-file-size: 10MB      # 파일 1개 최대 10MB
+      max-request-size: 100MB  # 한 요청 최대(최대 10개 업로드)
+
 logging:
   level:
     org.hibernate.SQL: debug
+
+# 이미지 정책 설정
+image:
+  max-size-bytes: 10485760        # 10MB
+  max-per-post: 10                # 게시글당 최대 이미지 개수
+  base-dir: uploads               # 로컬 저장 기본 디렉토리
+  allowed-extensions:             # 허용 확장자
+    - jpeg
+    - jpg
+    - png
+    - gif
+    - webp
+  profile-path-format: "user/%d/profile/%s" # 경로 포맷 (String.format)
+  post-path-format: "post/%d/images/%s"     # 경로 포맷 (String.format)
