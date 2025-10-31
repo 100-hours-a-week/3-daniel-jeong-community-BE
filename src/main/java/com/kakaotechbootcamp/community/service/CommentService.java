@@ -54,7 +54,7 @@ public class CommentService {
     /**
      * 댓글 생성
      * - 의도: 게시글/사용자 존재 확인 후 댓글 저장, parentId 전달 시 대댓글로 처리
-     * - 정책: 내용 공백 불가, 부모는 동일 게시글에 속해야 함, depth 자동 계산
+     * - 정책: 내용 공백 불가, 부모는 동일 게시글에 속해야 함, 삭제된 부모 금지, 최대 깊이=2(루트=0, 대댓글=1)
      */
     @Transactional
     public ApiResponse<CommentResponseDto> create(Integer postId, Integer userId, CommentRequestDto request) {
@@ -75,6 +75,12 @@ public class CommentService {
                     .orElseThrow(() -> new NotFoundException("부모 댓글을 찾을 수 없습니다"));
             if (!parent.getPost().getId().equals(postId)) {
                 throw new BadRequestException("부모 댓글이 해당 게시글에 속하지 않습니다");
+            }
+            if (parent.getDeletedAt() != null) {
+                throw new BadRequestException("삭제된 댓글에는 답글을 달 수 없습니다");
+            }
+            if (parent.getDepth() >= 1) { // 최대 깊이: 2
+                throw new BadRequestException("대댓글의 하위에는 더 이상 답글을 달 수 없습니다");
             }
             parentId = parent.getId();
             depth = parent.getDepth() + 1;
@@ -110,7 +116,7 @@ public class CommentService {
 
     /**
      * 댓글 삭제
-     * - 의도: deletedAt 설정, 데이터는 보관
+     * - 의도: deletedAt 설정, 데이터 보관, 내용 마스킹("삭제된 댓글입니다")
      */
     @Transactional
     public ApiResponse<Void> delete(Integer commentId) {
@@ -120,8 +126,8 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("댓글을 찾을 수 없습니다"));
         Integer postId = comment.getPost().getId();
+        comment.updateContent("삭제된 댓글입니다");
         comment.softDelete();
-        commentRepository.save(comment);
         // 비동기 댓글수 -1
         postStatAsyncService.decrementCommentCount(postId);
         return ApiResponse.deleted(null);
