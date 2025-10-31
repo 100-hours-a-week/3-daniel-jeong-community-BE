@@ -1,9 +1,12 @@
 package com.kakaotechbootcamp.community.service;
 
 import com.kakaotechbootcamp.community.common.ApiResponse;
+import com.kakaotechbootcamp.community.common.ImageType;
+import com.kakaotechbootcamp.community.common.ImageProperties;
 import com.kakaotechbootcamp.community.dto.post.*;
 import com.kakaotechbootcamp.community.entity.*;
 import com.kakaotechbootcamp.community.exception.NotFoundException;
+import com.kakaotechbootcamp.community.exception.BadRequestException;
 import com.kakaotechbootcamp.community.repository.*;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +33,8 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final PostStatAsyncService postStatAsyncService;
+    private final ImageUploadService imageUploadService;
+    private final ImageProperties imageProperties;
 
     /**
      * 게시글 목록 조회(커서 기반)
@@ -103,8 +108,16 @@ public class PostService {
 
         // 이미지 저장 (displayOrder = index)
         if (request.getImageObjectKeys() != null && !request.getImageObjectKeys().isEmpty()) {
-            List<PostImage> images = new java.util.ArrayList<>();
+            if (request.getImageObjectKeys().size() > imageProperties.getMaxPerPost()) {
+                throw new BadRequestException("이미지 최대 업로드 개수는 " + imageProperties.getMaxPerPost() + "개 입니다");
+            }
+            // 이미지 objectKey 검증
             List<String> keys = request.getImageObjectKeys();
+            for (String objectKey : keys) {
+                imageUploadService.validateObjectKey(ImageType.POST, objectKey, saved.getId());
+            }
+            
+            List<PostImage> images = new java.util.ArrayList<>();
             for (int i = 0; i < keys.size(); i++) {
                 images.add(new PostImage(saved, keys.get(i), i));
             }
@@ -145,6 +158,14 @@ public class PostService {
 
             List<String> keys = request.getImageObjectKeys();
             if (!keys.isEmpty()) {
+                if (keys.size() > imageProperties.getMaxPerPost()) {
+                    throw new BadRequestException("이미지 최대 업로드 개수는 " + imageProperties.getMaxPerPost() + "개 입니다");
+                }
+                // 이미지 objectKey 검증
+                for (String objectKey : keys) {
+                    imageUploadService.validateObjectKey(ImageType.POST, objectKey, postId);
+                }
+                
                 List<PostImage> newImages = new java.util.ArrayList<>(keys.size());
                 for (int i = 0; i < keys.size(); i++) {
                     newImages.add(new PostImage(post, keys.get(i), i));

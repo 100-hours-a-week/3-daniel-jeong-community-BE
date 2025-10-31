@@ -1,6 +1,6 @@
 package com.kakaotechbootcamp.community.dto.user;
 
-import com.kakaotechbootcamp.community.dto.image.ImageResponseDto;
+import com.kakaotechbootcamp.community.dto.image.ImageUploadResponseDto;
 import com.kakaotechbootcamp.community.entity.User;
 
 /**
@@ -11,13 +11,13 @@ import com.kakaotechbootcamp.community.entity.User;
 public record UserReferenceDto(
         Integer id,
         String nickname,
-        ImageResponseDto image
+        ImageUploadResponseDto image
 ) {
     public static UserReferenceDto from(User user) {
         return new UserReferenceDto(
                 user.getId(),
                 user.getNickname(),
-                ImageResponseDto.of(user.getProfileImageKey())
+                ImageUploadResponseDto.of(user.getProfileImageKey())
         );
     }
 }

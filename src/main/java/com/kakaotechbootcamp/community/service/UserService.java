@@ -1,17 +1,17 @@
 package com.kakaotechbootcamp.community.service;
 
 import com.kakaotechbootcamp.community.common.ApiResponse;
+import com.kakaotechbootcamp.community.common.ImageType;
 import com.kakaotechbootcamp.community.dto.user.UserCreateRequestDto;
 import com.kakaotechbootcamp.community.dto.user.UserResponseDto;
 import com.kakaotechbootcamp.community.dto.user.UserUpdateRequestDto;
 import com.kakaotechbootcamp.community.entity.User;
-import com.kakaotechbootcamp.community.exception.ConflictException;
-import com.kakaotechbootcamp.community.exception.NotFoundException;
+import com.kakaotechbootcamp.community.exception.*;
 import com.kakaotechbootcamp.community.repository.UserRepository;
 
 import org.springframework.stereotype.Service;
-import com.kakaotechbootcamp.community.exception.BadRequestException;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
 /**
  * 사용자(User) 도메인 서비스
@@ -19,13 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
-
-    public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+    private final ImageUploadService imageUploadService;
 
     /**
      * 회원가입
@@ -80,7 +78,14 @@ public class UserService {
         }
         if (request.getProfileImageKey() != null) {
             String newProfileKey = request.getProfileImageKey().trim();
-            user.updateProfileImageKey(newProfileKey.isEmpty() ? null : newProfileKey);
+            String finalProfileKey = newProfileKey.isEmpty() ? null : newProfileKey;
+            
+            // 프로필 이미지 objectKey 검증
+            if (finalProfileKey != null) {
+                imageUploadService.validateObjectKey(ImageType.PROFILE, finalProfileKey, id);
+            }
+            
+            user.updateProfileImageKey(finalProfileKey);
         }
         return ApiResponse.modified(UserResponseDto.from(user));
     }
