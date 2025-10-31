@@ -13,6 +13,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * 게시글 통계 서비스
+ * - 의도: 통계 조회/동기화(좋아요/댓글 수) 제공
+ */
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -23,12 +27,20 @@ public class PostStatService {
     private final CommentRepository commentRepository;
     private final PostLikeRepository postLikeRepository;
 
+    /**
+     * 통계 조회
+     * - 에러: 미존재 시 404
+     */
     public ApiResponse<PostStatResponseDto> getByPostId(Integer postId) {
         PostStat stat = postStatRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("통계를 찾을 수 없습니다"));
         return ApiResponse.modified(PostStatResponseDto.from(stat));
     }
 
+    /**
+     * 통계 동기화
+     * - 의도: 테이블(PostLike, Comment)로부터 like/comment 수 집계하여 PostStat 반영
+     */
     @Transactional
     public ApiResponse<PostStatResponseDto> syncAll(Integer postId) {
         Post post = postRepository.findById(postId)
@@ -36,11 +48,11 @@ public class PostStatService {
 
         PostStat stat = postStatRepository.findById(postId).orElseGet(() -> new PostStat(post));
 
-        long likeCount = postLikeRepository.countByPostId(postId);
-        long commentCount = commentRepository.countByPostId(postId);
+        int likeCount = postLikeRepository.countByIdPostId(postId);
+        int commentCount = commentRepository.countByPostId(postId);
 
-        stat.syncLikeCount((int) likeCount);
-        stat.syncCommentCount((int) commentCount);
+        stat.syncLikeCount(likeCount);
+        stat.syncCommentCount(commentCount);
 
         PostStat saved = postStatRepository.save(stat);
         return ApiResponse.modified(PostStatResponseDto.from(saved));

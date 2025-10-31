@@ -26,7 +26,7 @@ public class PostLikeService {
     private final PostStatAsyncService postStatAsyncService;
 
     /**
-     * 좋아요 생성(멱등)
+     * 좋아요 생성
      * - 의도: 사용자가 게시글에 좋아요 등록, 이미 존재하면 no-op
      * - 파라미터: userId(사용자 ID), postId(게시글 ID)
      * - 반환: 현재 게시글의 likeCount(생성 시 +1, 이미 존재 시 +0)
@@ -37,7 +37,7 @@ public class PostLikeService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글을 찾을 수 없습니다"));
 
-        boolean exists = postLikeRepository.existsByPostIdAndUserId(postId, userId);
+        boolean exists = postLikeRepository.existsByIdPostIdAndIdUserId(postId, userId);
         PostStat stat = postStatRepository.findById(postId).orElseGet(() -> new PostStat(post));
         if (exists) {
             return stat.getLikeCount();
@@ -48,7 +48,7 @@ public class PostLikeService {
     }
 
     /**
-     * 좋아요 취소(멱등)
+     * 좋아요 취소
      * - 의도: 사용자가 게시글에 좋아요 취소, 아직 없으면 no-op
      * - 파라미터: userId(사용자 ID), postId(게시글 ID)
      * - 반환: 현재 게시글의 likeCount(삭제 시 -1, 미존재 시 +0)
@@ -59,12 +59,12 @@ public class PostLikeService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글을 찾을 수 없습니다"));
 
-        boolean exists = postLikeRepository.existsByPostIdAndUserId(postId, userId);
+        boolean exists = postLikeRepository.existsByIdPostIdAndIdUserId(postId, userId);
         PostStat stat = postStatRepository.findById(postId).orElseGet(() -> new PostStat(post));
         if (!exists) {
             return stat.getLikeCount();
         }
-        postLikeRepository.deleteByPostIdAndUserId(postId, userId);
+        postLikeRepository.deleteByIdPostIdAndIdUserId(postId, userId);
         postStatAsyncService.decrementLikeCount(postId);
         return Math.max(0, stat.getLikeCount() - 1);
     }
