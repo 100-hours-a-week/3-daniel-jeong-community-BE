@@ -7,8 +7,10 @@ import com.kakaotechbootcamp.community.dto.user.UserUpdateRequestDto;
 import com.kakaotechbootcamp.community.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import java.util.Map;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
+
+import java.util.Map;
 
 /**
  * 사용자(User) API 컨트롤러
@@ -18,13 +20,10 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/users")
+@RequiredArgsConstructor
 public class UserController {
 
 	private final UserService userService;
-
-	public UserController(UserService userService) {
-		this.userService = userService;
-	}
 
 	/**
      * 이메일 중복 체크
