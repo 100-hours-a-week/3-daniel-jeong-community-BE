@@ -12,9 +12,11 @@ import com.kakaotechbootcamp.community.repository.PostRepository;
 import com.kakaotechbootcamp.community.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 
 /**
  * 댓글(Comment) 도메인 서비스
@@ -33,22 +35,30 @@ public class CommentService {
     private final PostStatAsyncService postStatAsyncService;
 
     /**
-     * 댓글 목록 조회 (게시글 기준)
-     * - 의도: 생성일 오름차순으로 작성자 정보 포함 반환
+     * 댓글 목록 페이징 조회 (게시글 기준)
+     * - 의도: 생성일 오름차순 Page 반환
+     * - 파라미터: page(기본 0), size(기본 10, 최대 20)
      * - 에러: 게시글 미존재 시 404
      */
-    public ApiResponse<List<CommentResponseDto>> listByPost(Integer postId) {
+    public ApiResponse<Page<CommentResponseDto>> listByPost(Integer postId, Integer page, Integer size) {
         if (postId == null || postId <= 0) {
             throw new BadRequestException("유효한 게시글 ID가 필요합니다");
         }
         if (!postRepository.existsById(postId)) {
             throw new NotFoundException("게시글을 찾을 수 없습니다");
         }
-        List<CommentResponseDto> items = commentRepository.findByPostIdOrderByCreatedAtAscWithUser(postId)
-                .stream()
-                .map(CommentResponseDto::from)
-                .toList();
-        return ApiResponse.modified(items);
+        int p = (page == null) ? 0 : Math.max(0, page);
+        int requested = (size == null || size <= 0) ? 10 : size;
+        int pageSize = Math.min(requested, 20);
+
+        var sorts = new java.util.ArrayList<Sort.Order>();
+        sorts.add(Sort.Order.asc("createdAt"));
+        var pageable = PageRequest.of(p, pageSize, Sort.by(sorts));
+
+        Page<CommentResponseDto> pageResult = commentRepository.findAllByPostId(postId, pageable)
+                .map(CommentResponseDto::from);
+
+        return ApiResponse.modified(pageResult);
     }
 
     /**

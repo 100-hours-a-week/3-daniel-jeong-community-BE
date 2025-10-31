@@ -7,9 +7,9 @@ import com.kakaotechbootcamp.community.service.CommentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,12 +24,15 @@ public class CommentController {
     private final CommentService commentService;
 
     /**
-     * 댓글 목록 조회 (게시글 기준, 생성일 오름차순)
-     * - 에러: 게시글 미존재 시 404 반환
+     * 댓글 목록 페이징 조회 (게시글 기준, 생성일 오름차순)
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CommentResponseDto>>> listByPost(@PathVariable Integer postId) {
-        ApiResponse<List<CommentResponseDto>> response = commentService.listByPost(postId);
+    public ResponseEntity<ApiResponse<Page<CommentResponseDto>>> listByPost(
+            @PathVariable Integer postId,
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "size", required = false) Integer size
+    ) {
+        ApiResponse<Page<CommentResponseDto>> response = commentService.listByPost(postId, page, size);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
