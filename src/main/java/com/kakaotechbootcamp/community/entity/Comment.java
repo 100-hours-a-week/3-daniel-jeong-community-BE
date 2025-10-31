@@ -1,6 +1,7 @@
 package com.kakaotechbootcamp.community.entity;
 
 import jakarta.persistence.*;
+import jakarta.persistence.Index;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -15,7 +16,12 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Table(name = "comment")
+@Table(name = "comment", indexes = {
+        // 게시글별(created_at asc) 댓글 페이징 최적화
+        @Index(name = "idx_comment_post_created_at", columnList = "post_id, created_at"),
+        // 게시글별 부모-자식(대댓글) 정렬/조회 최적화
+        @Index(name = "idx_comment_post_parent_created_at", columnList = "post_id, parent_id, created_at")
+})
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @EntityListeners(AuditingEntityListener.class)
 @SQLRestriction("deleted_at IS NULL")
