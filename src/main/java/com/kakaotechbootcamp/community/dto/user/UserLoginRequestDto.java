@@ -18,6 +18,7 @@ public class UserLoginRequestDto {
 	@Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{1,}$", message = "올바른 이메일 형식이 아닙니다")
     private String email;
 
+    @NotBlank(message = "비밀번호를 입력해주세요")
     @Size(min = 8, max = 255)
     @Pattern(
             regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[!@#$%^&*()_+=\\[\\]{};':\\\"\\\\|,.<>/?-])(?!.*\\s)(?!.*(.)\\1{2,}).*$",
