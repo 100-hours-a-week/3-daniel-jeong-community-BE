@@ -114,9 +114,20 @@ public class UserService {
 
     /**
      * 로그아웃
-     * - 의도: 쿠키를 즉시 만료시켜 로그아웃 처리
+     * - 의도: 쿠키를 즉시 만료시키고 DB의 refresh token도 무효화
      */
-    public void logout(HttpServletResponse response) {
+    @Transactional
+    public void logout(HttpServletRequest request, HttpServletResponse response) {
+        // 쿠키에서 refresh token 추출 (만료된 토큰이어도 문자열은 있음)
+        extractRefreshTokenFromCookie(request).ifPresent(refreshTokenString -> {
+            // DB에서 refresh token 찾아서 무효화
+            refreshTokenRepository.findByTokenAndRevokedFalse(refreshTokenString)
+                    .ifPresent(token -> {
+                        token.setRevoked(true);
+                        refreshTokenRepository.save(token);
+                    });
+        });
+        
         // 쿠키 즉시 만료
         addTokenCookie(response, "accessToken", null, 0);
         addTokenCookie(response, "refreshToken", null, 0);

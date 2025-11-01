@@ -51,11 +51,14 @@ public class AuthController {
 
     /**
      * 로그아웃 (인증 삭제)
-     * - 의도: 쿠키를 즉시 만료시켜 로그아웃 처리
+     * - 의도: 쿠키를 즉시 만료시키고 DB의 refresh token도 무효화
      */
     @DeleteMapping
-    public ResponseEntity<ApiResponse<Void>> logout(HttpServletResponse response) {
-        userService.logout(response);
+    public ResponseEntity<ApiResponse<Void>> logout(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        userService.logout(request, response);
         return ResponseEntity.ok(ApiResponse.modified(null));
     }
 }
