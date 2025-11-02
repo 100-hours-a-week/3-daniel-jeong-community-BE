@@ -9,6 +9,7 @@ import com.kakaotechbootcamp.community.exception.NotFoundException;
 import com.kakaotechbootcamp.community.repository.UserRepository;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,7 @@ public class SessionService {
     private static final String SESSION_USER_EMAIL = "userEmail";
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * 로그인
@@ -40,9 +42,8 @@ public class SessionService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("이메일 또는 비밀번호가 올바르지 않습니다"));
 
-        // 비밀번호 검증 (현재는 평문 저장이므로 평문 비교)
-        // 실제 프로덕션에서는 BCrypt 등 암호화된 비밀번호 비교 필요
-        if (!password.equals(user.getPassword())) {
+        // 비밀번호 BCrypt 검증
+        if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new BadRequestException("이메일 또는 비밀번호가 올바르지 않습니다");
         }
 

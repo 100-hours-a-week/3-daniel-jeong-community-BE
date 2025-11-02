@@ -9,6 +9,7 @@ import com.kakaotechbootcamp.community.entity.User;
 import com.kakaotechbootcamp.community.exception.*;
 import com.kakaotechbootcamp.community.repository.UserRepository;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final ImageUploadService imageUploadService;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * 회원가입
@@ -41,7 +43,9 @@ public class UserService {
         if (userRepository.existsByNickname(nickname)) {
             throw new ConflictException("이미 사용 중인 닉네임입니다");
         }
-        User user = new User(email, request.getPassword(), nickname);
+        // 비밀번호 BCrypt 암호화
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
+        User user = new User(email, encodedPassword, nickname);
         User saved = userRepository.save(user);
         return ApiResponse.created(UserResponseDto.from(saved));
     }
@@ -140,10 +144,13 @@ public class UserService {
         if (cur.equals(next)) {
             throw new BadRequestException("이전 비밀번호와 새 비밀번호가 동일합니다");
         }
-        if (!cur.equals(user.getPassword())) {
+        // 현재 비밀번호 BCrypt 비교
+        if (!passwordEncoder.matches(cur, user.getPassword())) {
             throw new BadRequestException("현재 비밀번호가 일치하지 않습니다");
         }
-        user.updatePassword(next);
+        // 새 비밀번호 BCrypt 암호화
+        String encodedNewPassword = passwordEncoder.encode(next);
+        user.updatePassword(encodedNewPassword);
         return ApiResponse.modified(null);
     }
 }
