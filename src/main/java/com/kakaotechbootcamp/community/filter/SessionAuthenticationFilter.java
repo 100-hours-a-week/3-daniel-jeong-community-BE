@@ -39,6 +39,15 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
     );
 
     /**
+     * 필터 제외 경로 설정
+     * - CORS preflight 요청(OPTIONS)은 필터 제외
+     */
+    @Override
+    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
+        return "OPTIONS".equals(request.getMethod());
+    }
+
+    /**
      * 필터 실행 로직
      * - 인증 필요한 경로는 세션 검증 후 통과 또는 401 응답
      */
