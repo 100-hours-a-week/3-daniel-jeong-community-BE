@@ -32,6 +32,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         String method = request.getMethod();
         
+        // CORS preflight 요청(OPTIONS)은 필터 제외
+        if ("OPTIONS".equals(method)) {
+            return true;
+        }
+        
         // 정적 리소스는 무조건 제외
         if (path.startsWith("/files/") || path.equals("/files")) {
             return true;
