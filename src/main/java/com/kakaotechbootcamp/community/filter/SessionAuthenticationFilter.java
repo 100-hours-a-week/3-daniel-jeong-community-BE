@@ -79,6 +79,11 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
      * - 반환: 공개 경로면 true, 인증 필요 경로면 false
      */
     private boolean isPublicPath(String path, String method) {
+        // 정적 리소스 경로는 제외
+        if (path.startsWith("/files/") || path.equals("/files")) {
+            return true;
+        }
+
         // 정확히 일치하는 공개 경로 (중복 체크)
         if (PUBLIC_PATHS.contains(path)) {
             return true;
@@ -96,6 +101,11 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
 
         // POST /auth: 로그인
         if ("POST".equals(method) && path.equals("/auth")) {
+            return true;
+        }
+
+        // DELETE /auth: 로그아웃 (만료된 토큰이어도 로그아웃은 가능할 수 있도록 설정)
+        if ("DELETE".equals(method) && path.equals("/auth")) {
             return true;
         }
 
