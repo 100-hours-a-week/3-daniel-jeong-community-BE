@@ -7,12 +7,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * 필터 설정
+ * 웹 필터 설정
  * - 세션 인증 필터 등록 및 순서 설정
  */
 @Configuration
 @RequiredArgsConstructor
-public class FilterConfig {
+public class WebFilterConfig {
 
     private final SessionAuthenticationFilter sessionAuthenticationFilter;
 
