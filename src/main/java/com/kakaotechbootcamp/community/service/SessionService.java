@@ -99,8 +99,19 @@ public class SessionService {
         if (userId == null) {
             throw new NotFoundException("로그인이 필요합니다");
         }
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다"));
+        // @SQLRestriction으로 인해 삭제된 사용자는 조회되지 않음
+        User user = userRepository.findById(userId)
+                .orElse(null);
+        
+        // 사용자가 없거나 탈퇴한 경우 세션 무효화 후 예외 발생
+        if (user == null) {
+            if (session != null) {
+                session.invalidate();
+            }
+            throw new NotFoundException("사용자를 찾을 수 없습니다");
+        }
+        
+        return user;
     }
 
     /**
