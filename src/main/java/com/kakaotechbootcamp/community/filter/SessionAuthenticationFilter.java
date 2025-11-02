@@ -67,6 +67,7 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
             response.setContentType("application/json;charset=UTF-8");
             ApiResponse<String> errorResponse = ApiResponse.unauthorized("로그인이 필요합니다");
             response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
+            response.getWriter().flush();
             return;
         }
 
