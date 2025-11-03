@@ -8,6 +8,7 @@ import lombok.Getter;
 
 /**
  * 로그인 요청 DTO
+ * - 의도: 이메일/비밀번호로 로그인 및 세션 생성
  */
 @Getter
 public class UserLoginRequestDto {
@@ -25,4 +26,7 @@ public class UserLoginRequestDto {
             message = "영문, 숫자, 특수문자가 필요합니다"
     )
     private String password;
+
+    // 로그인 상태 유지 옵션 추가
+    private Boolean rememberMe = false;
 }

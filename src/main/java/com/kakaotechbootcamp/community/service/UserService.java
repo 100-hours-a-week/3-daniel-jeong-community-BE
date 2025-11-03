@@ -101,7 +101,8 @@ public class UserService {
         TokenResponse tokenResponse = generateAndSaveTokens(user);
 
         // 쿠키 추가
-        addTokenCookies(response, tokenResponse);
+        boolean rememberMe = Boolean.TRUE.equals(request.getRememberMe());
+        addTokenCookies(response, tokenResponse, rememberMe);
 
         UserLoginResponseDto loginResponse = new UserLoginResponseDto(
                 tokenResponse.accessToken(),
@@ -288,9 +289,10 @@ public class UserService {
     }
 
     /** AccessToken + RefreshToken 쿠키를 한번에 추가 */
-    private void addTokenCookies(HttpServletResponse response, TokenResponse tokenResponse) {
+    private void addTokenCookies(HttpServletResponse response, TokenResponse tokenResponse, boolean rememberMe) {
         addTokenCookie(response, "accessToken", tokenResponse.accessToken(), (int) accessTokenTtlSeconds);
-        addTokenCookie(response, "refreshToken", tokenResponse.refreshToken(), (int) refreshTokenTtlSeconds);
+        int refreshMaxAge = rememberMe ? (int) refreshTokenTtlSeconds : -1; // -1: 세션 쿠키
+        addTokenCookie(response, "refreshToken", tokenResponse.refreshToken(), refreshMaxAge);
     }
 
     /** 공통 쿠키 생성 로직 */
