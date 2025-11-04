@@ -45,7 +45,7 @@ public class ImageUploadController {
         if (file.getSize() > imageProperties.getMaxSizeBytes()) {
             throw new BadRequestException("이미지 최대 크기" + imageProperties.getMaxSizeBytes() + "바이트를 초과했습니다");
         }
-        if (!imageProperties.getAllowedExtensionSet().contains(file.getContentType())) {
+        if (!imageProperties.isAllowedContentType(file.getContentType())) {
             throw new BadRequestException("지원하지 않는 이미지 확장자입니다: " + file.getContentType());
         }
 
