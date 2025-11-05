@@ -7,8 +7,8 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import com.kakaotechbootcamp.community.jwt.JwtProvider;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -28,7 +28,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     // 필터 제외 경로 설정
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
+    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
         String path = request.getRequestURI();
         String method = request.getMethod();
         
@@ -55,6 +55,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         // /users 경로는 POST만 제외 (회원가입)
         if (path.equals("/users")) {
             return "POST".equals(method);
+        }
+        
+        // /posts 경로는 GET만 제외 (게시글 목록/상세 조회는 공개)
+        if (path.startsWith("/posts")) {
+            return "GET".equals(method);
         }
         
         return false;
