@@ -30,6 +30,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final PostImageRepository postImageRepository;
     private final PostStatRepository postStatRepository;
+    private final PostLikeRepository postLikeRepository;
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final PostStatAsyncService postStatAsyncService;
@@ -42,7 +43,7 @@ public class PostService {
      * - 반환: items, nextCursor, hasNext
      */
     @Transactional(readOnly = true)
-    public ApiResponse<PostResponseDto> list(Integer cursor, Integer size) {
+    public ApiResponse<PostResponseDto> list(Integer cursor, Integer size, Integer currentUserId) {
         int requested = (size == null) ? 10 : size;
         int pageSize = requested <= 0 ? 10 : Math.min(requested, 20);
         Pageable pageable = PageRequest.of(0, pageSize);
@@ -60,7 +61,14 @@ public class PostService {
             postStatRepository.findAllById(postIds).forEach(stat -> postIdToStat.put(stat.getId(), stat));
         }
 
-        List<PostListItemDto> items = PostListItemDto.from(posts, postIdToStat);
+        // 좋아요 일괄 조회
+        Map<Integer, Boolean> postIdToIsLiked = new HashMap<>();
+        if (currentUserId != null && !postIds.isEmpty()) {
+            List<PostLike> likes = postLikeRepository.findByIdPostIdInAndIdUserId(postIds, currentUserId);
+            likes.forEach(like -> postIdToIsLiked.put(like.getId().getPostId(), true));
+        }
+
+        List<PostListItemDto> items = PostListItemDto.from(posts, postIdToStat, postIdToIsLiked);
         Integer nextCursor = items.isEmpty() ? null : items.get(items.size() - 1).postId();
         boolean hasNext = items.size() == pageSize;
 
@@ -73,7 +81,7 @@ public class PostService {
      * - 에러: 게시글 미존재 시 404
      */
     @Transactional
-    public ApiResponse<PostDetailDto> getDetail(Integer postId) {
+    public ApiResponse<PostDetailDto> getDetail(Integer postId, Integer currentUserId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글을 찾을 수 없습니다"));
 
@@ -90,7 +98,14 @@ public class PostService {
         PostStat responseStat = new PostStat(post, stat.getLikeCount(), stat.getCommentCount());
         // viewCount는 +1 보정
         responseStat.incrementViewCount();
-        return ApiResponse.modified(PostDetailDto.from(post, images, responseStat, comments));
+
+        // likeCount / isLiked 계산
+        int likeCount = postLikeRepository.countByIdPostId(postId);
+        boolean isLiked = (currentUserId != null) && postLikeRepository.existsByIdPostIdAndIdUserId(postId, currentUserId);
+        // likeCount 반영
+        responseStat.syncLikeCount(likeCount);
+
+        return ApiResponse.modified(PostDetailDto.from(post, images, PostStatResponseDto.from(responseStat), comments, isLiked));
     }
 
     /**
@@ -99,7 +114,7 @@ public class PostService {
      * - 에러: 작성자 미존재 시 404
      */
     @Transactional
-    public ApiResponse<PostDetailDto> create(PostCreateRequestDto request) {
+    public ApiResponse<PostDetailDto> create(PostCreateRequestDto request, Integer currentUserId) {
         User author = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new NotFoundException("작성자를 찾을 수 없습니다"));
 
@@ -126,11 +141,16 @@ public class PostService {
 
         // 통계 생성
         PostStat stat = postStatRepository.save(new PostStat(saved));
+        // 좋아요 상태 및 수 계산
+        int likeCount = postLikeRepository.countByIdPostId(saved.getId());
+        boolean isLiked = (currentUserId != null) && postLikeRepository.existsByIdPostIdAndIdUserId(saved.getId(), currentUserId);
+        stat.syncLikeCount(likeCount);
 
         return ApiResponse.created(PostDetailDto.from(saved,
                 postImageRepository.findByPostIdOrderByDisplayOrderAsc(saved.getId()),
-                stat,
-                List.of()));
+                PostStatResponseDto.from(stat),
+                List.of(),
+                isLiked));
     }
 
     /**
@@ -140,7 +160,7 @@ public class PostService {
      * - 에러: 게시글 미존재 시 404
      */
     @Transactional
-    public ApiResponse<PostDetailDto> update(Integer postId, PostUpdateRequestDto request) {
+    public ApiResponse<PostDetailDto> update(Integer postId, PostUpdateRequestDto request, Integer currentUserId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글을 찾을 수 없습니다"));
 
@@ -175,11 +195,15 @@ public class PostService {
         }
 
         PostStat stat = postStatRepository.findById(postId).orElseGet(() -> postStatRepository.save(new PostStat(post)));
+        int likeCount = postLikeRepository.countByIdPostId(postId);
+        boolean isLiked = (currentUserId != null) && postLikeRepository.existsByIdPostIdAndIdUserId(postId, currentUserId);
+        stat.syncLikeCount(likeCount);
 
         return ApiResponse.modified(PostDetailDto.from(post,
                 postImageRepository.findByPostIdOrderByDisplayOrderAsc(postId),
-                stat,
-                commentRepository.findByPostIdOrderByCreatedAtAsc(postId)));
+                PostStatResponseDto.from(stat),
+                commentRepository.findByPostIdOrderByCreatedAtAsc(postId),
+                isLiked));
     }
 
     /**

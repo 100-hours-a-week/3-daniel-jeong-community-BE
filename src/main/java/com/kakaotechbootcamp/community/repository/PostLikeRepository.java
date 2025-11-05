@@ -4,6 +4,8 @@ import com.kakaotechbootcamp.community.entity.PostLike;
 import com.kakaotechbootcamp.community.entity.PostLikeId;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 /**
  * PostLike JPA Repository
  * - 의도: 좋아요 토글/통계 계산에 필요한 최소 메서드 제공
@@ -26,4 +28,9 @@ public interface PostLikeRepository extends JpaRepository<PostLike, PostLikeId> 
      * - EmbeddedId(postId, userId) 기준 경로 사용
      */
     void deleteByIdPostIdAndIdUserId(Integer postId, Integer userId);
+
+    /**
+     * 목록 조회용: 특정 사용자가 여러 게시물에 좋아요를 눌렀는지 일괄 조회
+     */
+    List<PostLike> findByIdPostIdInAndIdUserId(List<Integer> postIds, Integer userId);
 }

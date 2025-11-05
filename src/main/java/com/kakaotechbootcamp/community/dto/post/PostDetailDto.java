@@ -5,7 +5,6 @@ import com.kakaotechbootcamp.community.dto.user.UserReferenceDto;
 import com.kakaotechbootcamp.community.entity.Comment;
 import com.kakaotechbootcamp.community.entity.Post;
 import com.kakaotechbootcamp.community.entity.PostImage;
-import com.kakaotechbootcamp.community.entity.PostStat;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -25,9 +24,10 @@ public record PostDetailDto(
         UserReferenceDto author,
         List<String> imageObjectKeys,
         PostStatResponseDto stats,
-        List<CommentResponseDto> comments
+        List<CommentResponseDto> comments,
+        boolean isLiked
 ) {
-    public static PostDetailDto from(Post post, List<PostImage> images, PostStat stat, List<Comment> comments) {
+    public static PostDetailDto from(Post post, List<PostImage> images, PostStatResponseDto stats, List<Comment> comments, boolean isLiked) {
         List<String> keys = images == null ? Collections.emptyList() : images.stream()
                 .map(PostImage::getObjectKey)
                 .collect(Collectors.toList());
@@ -42,8 +42,9 @@ public record PostDetailDto(
                 post.getUpdatedAt(),
                 UserReferenceDto.from(post.getUser()),
                 keys,
-                PostStatResponseDto.from(stat),
-                commentDtos
+                stats,
+                commentDtos,
+                isLiked
         );
     }
 }

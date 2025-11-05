@@ -33,9 +33,10 @@ public class PostController {
     @GetMapping
     public ResponseEntity<ApiResponse<PostResponseDto>> list(
             @RequestParam(value = "cursor", required = false) Integer cursor,
-            @RequestParam(value = "size", required = false) Integer size
+            @RequestParam(value = "size", required = false) Integer size,
+            @RequestAttribute(value = "userId", required = false) Integer userId
     ) {
-        ApiResponse<PostResponseDto> response = postService.list(cursor, size);
+        ApiResponse<PostResponseDto> response = postService.list(cursor, size, userId);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
@@ -45,8 +46,11 @@ public class PostController {
      * - 에러: 존재하지 않으면 404(NotFound)
      */
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<PostDetailDto>> getDetail(@PathVariable("id") Integer id) {
-        ApiResponse<PostDetailDto> response = postService.getDetail(id);
+    public ResponseEntity<ApiResponse<PostDetailDto>> getDetail(
+            @PathVariable("id") Integer id,
+            @RequestAttribute(value = "userId", required = false) Integer userId
+    ) {
+        ApiResponse<PostDetailDto> response = postService.getDetail(id, userId);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
@@ -56,8 +60,9 @@ public class PostController {
      * - 에러: 작성자 미존재 시 404(NotFound), 유효성 위반 시 400
      */
     @PostMapping
-    public ResponseEntity<ApiResponse<PostDetailDto>> create(@Valid @RequestBody PostCreateRequestDto request) {
-        ApiResponse<PostDetailDto> response = postService.create(request);
+    public ResponseEntity<ApiResponse<PostDetailDto>> create(@Valid @RequestBody PostCreateRequestDto request,
+                                                             @RequestAttribute(value = "userId", required = false) Integer userId) {
+        ApiResponse<PostDetailDto> response = postService.create(request, userId);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
@@ -69,9 +74,10 @@ public class PostController {
     @PatchMapping("/{id}")
     public ResponseEntity<ApiResponse<PostDetailDto>> update(
             @PathVariable("id") Integer id,
-            @Valid @RequestBody PostUpdateRequestDto request
+            @Valid @RequestBody PostUpdateRequestDto request,
+            @RequestAttribute(value = "userId", required = false) Integer userId
     ) {
-        ApiResponse<PostDetailDto> response = postService.update(id, request);
+        ApiResponse<PostDetailDto> response = postService.update(id, request, userId);
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
