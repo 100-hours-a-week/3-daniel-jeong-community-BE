@@ -1,13 +1,16 @@
 package com.kakaotechbootcamp.community.controller;
 
 import com.kakaotechbootcamp.community.common.ApiResponse;
+import com.kakaotechbootcamp.community.common.ImageProperties;
 import com.kakaotechbootcamp.community.dto.user.UserCreateRequestDto;
 import com.kakaotechbootcamp.community.dto.user.UserResponseDto;
 import com.kakaotechbootcamp.community.dto.user.UserUpdateRequestDto;
+import com.kakaotechbootcamp.community.exception.BadRequestException;
 import com.kakaotechbootcamp.community.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Map;
@@ -24,14 +27,15 @@ import java.util.Map;
 public class UserController {
 
 	private final UserService userService;
+	private final ImageProperties imageProperties;
 
-	/**
+    /**
      * 이메일 중복 체크
      * - 반환: true=사용 가능, false=중복
      */
     @PostMapping("/check-email")
-    public ResponseEntity<ApiResponse<Boolean>> checkEmail(@RequestBody Map<String, String> body) {
-        ApiResponse<Boolean> response = userService.isEmailAvailable(body.get("email"));
+    public ResponseEntity<ApiResponse<Map<String, Object>>> checkEmail(@RequestBody Map<String, String> body) {
+        ApiResponse<Map<String, Object>> response = userService.isEmailAvailable(body.get("email"));
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 
@@ -48,10 +52,24 @@ public class UserController {
     /**
      * 회원가입
      * - 의도: 유효성 검증(@Valid) 후 사용자 생성
+     * - 요청: multipart/form-data (userData: JSON, profileImage: 파일, 선택사항)
      */
     @PostMapping
-    public ResponseEntity<ApiResponse<UserResponseDto>> create(@Valid @RequestBody UserCreateRequestDto request) {
-        ApiResponse<UserResponseDto> response = userService.create(request);
+    public ResponseEntity<ApiResponse<UserResponseDto>> create(
+            @RequestPart("userData") @Valid UserCreateRequestDto request,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage
+    ) {
+        // 프로필 이미지 파일 검증 (있는 경우)
+        if (profileImage != null && !profileImage.isEmpty()) {
+            if (profileImage.getSize() > imageProperties.getMaxSizeBytes()) {
+                throw new BadRequestException("이미지 최대 크기" + imageProperties.getMaxSizeBytes() + "바이트를 초과했습니다");
+            }
+            if (!imageProperties.isAllowedContentType(profileImage.getContentType())) {
+                throw new BadRequestException("지원하지 않는 이미지 확장자입니다: " + profileImage.getContentType());
+            }
+        }
+        
+        ApiResponse<UserResponseDto> response = userService.create(request, profileImage);
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
 

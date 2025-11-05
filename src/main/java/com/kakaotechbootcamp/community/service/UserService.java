@@ -18,8 +18,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 사용자(User) 도메인 서비스
@@ -48,10 +51,11 @@ public class UserService {
     /**
      * 회원가입
      * - 의도: 이메일/닉네임 중복 검사 후 사용자 생성
+     * - 프로필 이미지: 파일이 있으면 업로드 후 profileImageKey 설정
      * - 에러: 중복 시 409(Conflict)
      */
     @Transactional
-    public ApiResponse<UserResponseDto> create(UserCreateRequestDto request) {
+    public ApiResponse<UserResponseDto> create(UserCreateRequestDto request, MultipartFile profileImage) {
         String email = request.getEmail().trim().toLowerCase();
         String nickname = request.getNickname().trim();
 
@@ -61,18 +65,25 @@ public class UserService {
         if (userRepository.existsByNickname(nickname)) {
             throw new ConflictException("이미 사용 중인 닉네임입니다");
         }
+        
         String encodedPassword = passwordEncoder.encode(request.getPassword());
         User user = new User(email, encodedPassword, nickname);
         User saved = userRepository.save(user);
 
-        // 프로필 이미지 처리 (있으면 검증 후 설정)
-        if (request.getProfileImageKey() != null) {
+        // 프로필 이미지 처리
+        if (profileImage != null && !profileImage.isEmpty()) {
+            // 프로필 이미지 업로드 및 저장
+            com.kakaotechbootcamp.community.dto.image.ImageUploadResponseDto uploadResponse = 
+                    imageUploadService.uploadMultipart(ImageType.PROFILE, saved.getId(), profileImage);
+            saved.updateProfileImageKey(uploadResponse.objectKey());
+            saved = userRepository.save(saved);
+        } else if (request.getProfileImageKey() != null && !request.getProfileImageKey().trim().isEmpty()) {
+            // 기존 objectKey가 제공된 경우 (하위 호환성)
             String profileKey = request.getProfileImageKey().trim();
-            
-            // 프로필 이미지 objectKey 검증
             if (!profileKey.isEmpty()) {
                 imageUploadService.validateObjectKey(ImageType.PROFILE, profileKey, saved.getId());
                 saved.updateProfileImageKey(profileKey);
+                saved = userRepository.save(saved);
             }
         }
 
@@ -180,7 +191,7 @@ public class UserService {
 
     /**
      * 회원 탈퇴(소프트 삭제)
-     * - 의도: deletedAt 설정로 비활성화
+     * - 의도: deletedAt 설정으로 비활성화
      */
     @Transactional
     public ApiResponse<Void> delete(Integer id) {
@@ -195,9 +206,14 @@ public class UserService {
      * - 반환: true=사용 가능, false=중복
      */
     @Transactional(readOnly = true)
-    public ApiResponse<Boolean> isEmailAvailable(String email) {
-        boolean exists = userRepository.existsByEmail(email.trim().toLowerCase());
-        return ApiResponse.modified(!exists);
+    public ApiResponse<Map<String, Object>> isEmailAvailable(String email) {
+        String emailLower = email.trim().toLowerCase();
+        boolean exists = userRepository.existsByEmail(emailLower);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("available", !exists);
+        
+        return ApiResponse.modified(result);
     }
 
     /**
@@ -273,7 +289,7 @@ public class UserService {
         return ApiResponse.modified(tokenResponse);
     }
 
-    /** Access / Refresh 토큰을 새로 발급하고 DB에 저장 */
+    /** Access, Refresh 토큰을 새로 발급하고 DB에 저장 */
     private TokenResponse generateAndSaveTokens(User user) {
         String accessToken = jwtProvider.createAccessToken(user.getId().longValue(), "USER");
         String refreshToken = jwtProvider.createRefreshToken(user.getId().longValue());
