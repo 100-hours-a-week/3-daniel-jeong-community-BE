@@ -68,4 +68,8 @@ public class PostStat {
     public void syncCommentCount(int commentCount) {
         this.commentCount = commentCount;
     }
+
+    public void syncViewCount(int viewCount) {
+        this.viewCount = viewCount;
+    }
 }

@@ -1,12 +1,10 @@
 package com.kakaotechbootcamp.community.service;
 
-import com.kakaotechbootcamp.community.entity.Post;
 import com.kakaotechbootcamp.community.entity.PostLike;
 import com.kakaotechbootcamp.community.entity.PostStat;
 import com.kakaotechbootcamp.community.exception.NotFoundException;
 import com.kakaotechbootcamp.community.repository.PostLikeRepository;
 import com.kakaotechbootcamp.community.repository.PostRepository;
-import com.kakaotechbootcamp.community.repository.PostStatRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +20,8 @@ public class PostLikeService {
 
     private final PostRepository postRepository;
     private final PostLikeRepository postLikeRepository;
-    private final PostStatRepository postStatRepository;
     private final PostStatAsyncService postStatAsyncService;
+    private final PostStatService postStatService;
 
     /**
      * 좋아요 생성
@@ -34,11 +32,11 @@ public class PostLikeService {
      */
     @Transactional
     public int saveLike(Integer userId, Integer postId) {
-        Post post = postRepository.findById(postId)
+        postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글을 찾을 수 없습니다"));
 
         boolean exists = postLikeRepository.existsByIdPostIdAndIdUserId(postId, userId);
-        PostStat stat = postStatRepository.findById(postId).orElseGet(() -> new PostStat(post));
+        PostStat stat = postStatService.findByIdOrCreate(postId);
         if (exists) {
             return stat.getLikeCount();
         }
@@ -56,11 +54,11 @@ public class PostLikeService {
      */
     @Transactional
     public int removeLike(Integer userId, Integer postId) {
-        Post post = postRepository.findById(postId)
+        postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글을 찾을 수 없습니다"));
 
         boolean exists = postLikeRepository.existsByIdPostIdAndIdUserId(postId, userId);
-        PostStat stat = postStatRepository.findById(postId).orElseGet(() -> new PostStat(post));
+        PostStat stat = postStatService.findByIdOrCreate(postId);
         if (!exists) {
             return stat.getLikeCount();
         }

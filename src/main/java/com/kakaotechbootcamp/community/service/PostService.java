@@ -34,6 +34,7 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
     private final PostStatAsyncService postStatAsyncService;
+    private final PostStatService postStatService;
     private final ImageUploadService imageUploadService;
     private final ImageProperties imageProperties;
 
@@ -59,6 +60,17 @@ public class PostService {
         Map<Integer, PostStat> postIdToStat = new HashMap<>();
         if (!postIds.isEmpty()) {
             postStatRepository.findAllById(postIds).forEach(stat -> postIdToStat.put(stat.getId(), stat));
+            
+            // 각 게시글의 통계를 실제 DB에서 동기화
+            for (Integer postId : postIds) {
+                PostStat stat = postIdToStat.get(postId);
+                if (stat == null) {
+                    continue;
+                }
+                // PostStatService를 통해 통계 동기화 후 Map에 반영
+                PostStat syncedStat = postStatService.syncStatistics(postId);
+                postIdToStat.put(postId, syncedStat);
+            }
         }
 
         // 좋아요 일괄 조회
@@ -86,7 +98,7 @@ public class PostService {
                 .orElseThrow(() -> new NotFoundException("게시글을 찾을 수 없습니다"));
 
         List<PostImage> images = postImageRepository.findByPostIdOrderByDisplayOrderAsc(postId);
-        PostStat stat = postStatRepository.findById(postId).orElseGet(() -> new PostStat(post));
+        PostStat stat = postStatService.findByIdOrCreate(postId);
 
         // 조회수 증가: 비동기 처리
         postStatAsyncService.incrementViewCount(postId);
@@ -94,16 +106,16 @@ public class PostService {
         // 댓글 + 작성자
         List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAscWithUser(postId);
 
-        // 응답에는 증가된 값으로 표현
-        PostStat responseStat = new PostStat(post, stat.getLikeCount(), stat.getCommentCount());
-        // viewCount는 +1 보정
-        responseStat.incrementViewCount();
-
-        // likeCount / isLiked 계산
-        int likeCount = postLikeRepository.countByIdPostId(postId);
+        // 통계 동기화
+        PostStat syncedStat = postStatService.syncStatistics(postId);
+        
+        // 응답용 통계 객체 생성 (viewCount는 DB 값 + 1)
+        PostStat responseStat = new PostStat(post);
+        responseStat.syncLikeCount(syncedStat.getLikeCount());
+        responseStat.syncCommentCount(syncedStat.getCommentCount());
+        responseStat.syncViewCount(stat.getViewCount() + 1);
+        
         boolean isLiked = (currentUserId != null) && postLikeRepository.existsByIdPostIdAndIdUserId(postId, currentUserId);
-        // likeCount 반영
-        responseStat.syncLikeCount(likeCount);
 
         return ApiResponse.modified(PostDetailDto.from(post, images, PostStatResponseDto.from(responseStat), comments, isLiked));
     }
@@ -139,12 +151,11 @@ public class PostService {
             postImageRepository.saveAll(images);
         }
 
-        // 통계 생성
-        PostStat stat = postStatRepository.save(new PostStat(saved));
-        // 좋아요 상태 및 수 계산
-        int likeCount = postLikeRepository.countByIdPostId(saved.getId());
+        // 통계 생성 및 동기화
+        PostStat stat = postStatService.create(saved);
+        stat = postStatService.syncStatistics(saved.getId());
+        
         boolean isLiked = (currentUserId != null) && postLikeRepository.existsByIdPostIdAndIdUserId(saved.getId(), currentUserId);
-        stat.syncLikeCount(likeCount);
 
         return ApiResponse.created(PostDetailDto.from(saved,
                 postImageRepository.findByPostIdOrderByDisplayOrderAsc(saved.getId()),
@@ -194,10 +205,9 @@ public class PostService {
             }
         }
 
-        PostStat stat = postStatRepository.findById(postId).orElseGet(() -> postStatRepository.save(new PostStat(post)));
-        int likeCount = postLikeRepository.countByIdPostId(postId);
+        // 통계 동기화
+        PostStat stat = postStatService.syncStatistics(postId);
         boolean isLiked = (currentUserId != null) && postLikeRepository.existsByIdPostIdAndIdUserId(postId, currentUserId);
-        stat.syncLikeCount(likeCount);
 
         return ApiResponse.modified(PostDetailDto.from(post,
                 postImageRepository.findByPostIdOrderByDisplayOrderAsc(postId),
