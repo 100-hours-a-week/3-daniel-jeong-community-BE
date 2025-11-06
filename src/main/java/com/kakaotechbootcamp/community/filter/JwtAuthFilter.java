@@ -38,30 +38,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return true;
         }
         
-        // 정적 리소스
-        if (path.startsWith("/files/") || path.equals("/files") ||
-            path.startsWith("/webjars/") || path.startsWith("/static/")) {
+        // 정적 리소스는 필터 제외
+        if (path.startsWith("/files/") || path.startsWith("/webjars/") || path.startsWith("/static/")) {
             return true;
         }
         
-        // 경로 매칭
+        // 제외 경로 목록에 포함된 경로는 필터 제외
         if (Arrays.stream(EXCLUDED_PATHS).anyMatch(path::startsWith)) {
             return true;
         }
         
         // /auth 경로는 POST(로그인), DELETE(로그아웃) 제외
-        if (path.equals("/auth")) {
-            return "POST".equals(method) || "DELETE".equals(method);
+        if (path.equals("/auth") && ("POST".equals(method) || "DELETE".equals(method))) {
+            return true;
         }
         
         // /users 경로는 POST만 제외 (회원가입)
-        if (path.equals("/users")) {
-            return "POST".equals(method);
-        }
-        
-        // /posts 경로는 GET만 제외 (게시글 목록/상세 조회는 공개)
-        if (path.startsWith("/posts")) {
-            return "GET".equals(method);
+        if (path.equals("/users") && "POST".equals(method)) {
+            return true;
         }
         
         return false;
@@ -75,23 +69,21 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             @NonNull FilterChain chain
     ) throws IOException, ServletException {
 
-        boolean isIndex = isIndexRequest(request);
+        String path = request.getRequestURI();
+        boolean isPublicGet = path.startsWith("/posts") && "GET".equals(request.getMethod());
         Optional<String> token = extractToken(request);
 
-        // 토큰 없음 → 필터 적용된 요청은 인증 필요
-        if (token.isEmpty()) {
-            if (isIndex) {
-                response.sendRedirect("/login");
-            } else {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            }
+        // 공개 GET 요청: 토큰이 있으면 userId 설정, 없어도 진행
+        if (isPublicGet) {
+            token.ifPresent(t -> validateAndSetAttributes(t, request));
+            chain.doFilter(request, response);
             return;
         }
 
-        // 토큰 검증 및 속성 설정
-        if (!validateAndSetAttributes(token.get(), request)) {
-            // 토큰이 잘못된 경우 → index면 리다이렉트, 그 외는 401
-            if (isIndex) {
+        // 인증 필요: 토큰 없거나 유효하지 않으면 에러
+        if (token.isEmpty() || !validateAndSetAttributes(token.get(), request)) {
+            String uri = request.getRequestURI();
+            if ("/".equals(uri) || "/index".equals(uri)) {
                 response.sendRedirect("/login");
             } else {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -102,44 +94,42 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
-    // index 요청인지 확인
-    private boolean isIndexRequest(HttpServletRequest request) {
-        String uri = request.getRequestURI();
-        return "/".equals(uri) || "/index".equals(uri);
-    }
-
-    // 토큰 추출 (헤더 우선, 쿠키 다음)
+    /**
+     * 토큰 추출 (헤더 우선, 쿠키 다음)
+     * - Authorization 헤더의 Bearer 토큰을 먼저 확인
+     * - 없으면 쿠키의 accessToken 확인
+     */
     private Optional<String> extractToken(HttpServletRequest request) {
-        return extractTokenFromHeader(request)
-                .or(() -> extractTokenFromCookie(request));
+        // 헤더에서 추출 시도
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return Optional.of(authHeader.substring(7));
+        }
+        
+        // 쿠키에서 추출 시도
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            return Arrays.stream(cookies)
+                    .filter(c -> "accessToken".equals(c.getName()))
+                    .map(Cookie::getValue)
+                    .findFirst();
+        }
+        
+        return Optional.empty();
     }
 
-    // 헤더에서 토큰 추출
-    private Optional<String> extractTokenFromHeader(HttpServletRequest request) {
-        return Optional.ofNullable(request.getHeader("Authorization"))
-                .filter(header -> header.startsWith("Bearer "))
-                .map(header -> header.substring(7));
-    }
-
-    // 쿠키에서 토큰 추출
-    private Optional<String> extractTokenFromCookie(HttpServletRequest request) {
-        return Optional.ofNullable(request.getCookies())
-                .stream()
-                .flatMap(Arrays::stream)
-                .filter(cookie -> "accessToken".equals(cookie.getName()))
-                .map(Cookie::getValue)
-                .findFirst();
-    }
-
-    // 토큰 검증 및 요청 속성 설정
+    /**
+     * 토큰 검증 및 요청 속성 설정
+     * - JWT 토큰을 파싱하여 userId와 role을 request attribute로 설정
+     * - 검증 실패 시 false 반환
+     */
     private boolean validateAndSetAttributes(String token, HttpServletRequest request) {
         try {
-            var jws = jwtProvider.parse(token);
-            Claims body = jws.getBody();
-            request.setAttribute("userId", Long.valueOf(body.getSubject()));
+            Claims body = jwtProvider.parse(token).getBody();
+            request.setAttribute("userId", Integer.valueOf(body.getSubject()));
             request.setAttribute("role", body.get("role"));
             return true;
-        } catch (Exception exception) {
+        } catch (Exception e) {
             return false;
         }
     }

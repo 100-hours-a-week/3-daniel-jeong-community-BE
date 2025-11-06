@@ -27,43 +27,65 @@ public class PostLikeService {
      * 좋아요 생성
      * - 의도: 사용자가 게시글에 좋아요 등록, 이미 존재하면 no-op
      * - 파라미터: userId(사용자 ID), postId(게시글 ID)
-     * - 반환: 현재 게시글의 likeCount(생성 시 +1, 이미 존재 시 +0)
+     * - 반환: likeCount와 isLiked를 포함한 Map
      * - 동작: PostLike 엔티티 생성 → PostStat 비동기 증가 호출 → 즉시 PostStat에서 likeCount 반환
      */
     @Transactional
-    public int saveLike(Integer userId, Integer postId) {
+    public java.util.Map<String, Object> saveLike(Integer userId, Integer postId) {
         postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글을 찾을 수 없습니다"));
 
         boolean exists = postLikeRepository.existsByIdPostIdAndIdUserId(postId, userId);
         PostStat stat = postStatService.findByIdOrCreate(postId);
+        int likeCount;
+        boolean isLiked;
+        
         if (exists) {
-            return stat.getLikeCount();
+            likeCount = stat.getLikeCount();
+            isLiked = true;
+        } else {
+            postLikeRepository.save(new PostLike(userId, postId));
+            postStatAsyncService.incrementLikeCount(postId);
+            likeCount = stat.getLikeCount() + 1;
+            isLiked = true;
         }
-        postLikeRepository.save(new PostLike(userId, postId));
-        postStatAsyncService.incrementLikeCount(postId);
-        return stat.getLikeCount() + 1;
+        
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("likeCount", likeCount);
+        result.put("isLiked", isLiked);
+        return result;
     }
 
     /**
      * 좋아요 취소
      * - 의도: 사용자가 게시글에 좋아요 취소, 아직 없으면 no-op
      * - 파라미터: userId(사용자 ID), postId(게시글 ID)
-     * - 반환: 현재 게시글의 likeCount(삭제 시 -1, 미존재 시 +0)
+     * - 반환: likeCount와 isLiked를 포함한 Map
      * - 동작: PostLike 엔티티 삭제 → PostStat 비동기 감소 호출 → 즉시 PostStat에서 likeCount 반환(0 미만 방지)
      */
     @Transactional
-    public int removeLike(Integer userId, Integer postId) {
+    public java.util.Map<String, Object> removeLike(Integer userId, Integer postId) {
         postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("게시글을 찾을 수 없습니다"));
 
         boolean exists = postLikeRepository.existsByIdPostIdAndIdUserId(postId, userId);
         PostStat stat = postStatService.findByIdOrCreate(postId);
+        int likeCount;
+        boolean isLiked;
+        
         if (!exists) {
-            return stat.getLikeCount();
+            likeCount = stat.getLikeCount();
+            isLiked = false;
+        } else {
+            postLikeRepository.deleteByIdPostIdAndIdUserId(postId, userId);
+            postStatAsyncService.decrementLikeCount(postId);
+            likeCount = Math.max(0, stat.getLikeCount() - 1);
+            isLiked = false;
         }
-        postLikeRepository.deleteByIdPostIdAndIdUserId(postId, userId);
-        postStatAsyncService.decrementLikeCount(postId);
-        return Math.max(0, stat.getLikeCount() - 1);
+        
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("likeCount", likeCount);
+        result.put("isLiked", isLiked);
+        return result;
     }
 }
