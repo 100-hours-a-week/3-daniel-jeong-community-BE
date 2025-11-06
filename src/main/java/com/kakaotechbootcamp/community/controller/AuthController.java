@@ -2,6 +2,7 @@ package com.kakaotechbootcamp.community.controller;
 
 import com.kakaotechbootcamp.community.common.ApiResponse;
 import com.kakaotechbootcamp.community.dto.user.*;
+import com.kakaotechbootcamp.community.service.EmailService;
 import com.kakaotechbootcamp.community.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final UserService userService;
+    private final EmailService emailService;
 
     /**
      * 로그인 (인증 생성)
@@ -60,5 +62,50 @@ public class AuthController {
     ) {
         userService.logout(request, response);
         return ResponseEntity.ok(ApiResponse.modified(null));
+    }
+
+    /**
+     * 비밀번호 재설정 인증번호 발송
+     * - 의도: 이메일로 인증번호 생성 및 발송
+     */
+    @PostMapping("/password-reset")
+    public ResponseEntity<ApiResponse<Integer>> sendPasswordResetCode(
+            @Valid @RequestBody PasswordResetRequestDto request
+    ) {
+        String email = request.getEmail().trim().toLowerCase();
+        Integer userId = emailService.sendPasswordResetCode(email);
+        return ResponseEntity.ok(ApiResponse.modified(userId));
+    }
+
+    /**
+     * 비밀번호 재설정 인증번호 검증
+     */
+    @PostMapping("/password-reset/{id}/verify")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> verifyPasswordResetCode(
+            @PathVariable Integer id,
+            @RequestBody java.util.Map<String, String> body
+    ) {
+        ApiResponse<java.util.Map<String, Object>> response = emailService.verifyPasswordResetCode(
+                id,
+                body.get("verificationCode")
+        );
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+
+    /**
+     * 비밀번호 재설정
+     * - 의도: 인증번호 검증 완료 후 비밀번호 재설정
+     */
+    @PatchMapping("/password-reset/{id}")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @PathVariable Integer id,
+            @Valid @RequestBody PasswordUpdateRequestDto request
+    ) {
+        ApiResponse<Void> response = emailService.resetPassword(
+                id,
+                request.getNewPassword(),
+                request.getConfirmPassword()
+        );
+        return ResponseEntity.status(response.getStatus()).body(response);
     }
 }

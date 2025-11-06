@@ -228,29 +228,37 @@ public class UserService {
 
     /**
      * 비밀번호 변경
-     * - 의도: 현재/신규 비밀번호 검증 후 업데이트
-     * - 에러: 공백/동일/현재 불일치 시 400(BadRequest)
+     * - 현재 비밀번호로 검증 후 새 비밀번호 + 확인 비밀번호 검증 후 변경
      */
     @Transactional
-    public ApiResponse<Void> updatePassword(Integer id, String currentPassword, String newPassword) {
+    public ApiResponse<Void> updatePassword(Integer id, String newPassword, String confirmPassword) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다"));
 
-        String cur = currentPassword == null ? "" : currentPassword.trim();
         String next = newPassword == null ? "" : newPassword.trim();
-        if (cur.isEmpty() || next.isEmpty()) {
-            throw new BadRequestException("비밀번호를 모두 입력해주세요");
+        if (next.isEmpty()) {
+            throw new BadRequestException("새 비밀번호를 입력해주세요");
         }
-        if (cur.equals(next)) {
+
+        String confirm = confirmPassword == null ? "" : confirmPassword.trim();
+        if (confirm.isEmpty()) {
+            throw new BadRequestException("비밀번호 확인을 입력해주세요");
+        }
+
+        if (!next.equals(confirm)) {
+            throw new BadRequestException("새 비밀번호와 비밀번호 확인이 일치하지 않습니다");
+        }
+
+        // 새 비밀번호가 현재 비밀번호와 동일한지 확인
+        if (passwordEncoder.matches(next, user.getPassword())) {
             throw new BadRequestException("이전 비밀번호와 새 비밀번호가 동일합니다");
         }
-        if (!passwordEncoder.matches(cur, user.getPassword())) {
-            throw new BadRequestException("현재 비밀번호가 일치하지 않습니다");
-        }
+
         String encodedNewPassword = passwordEncoder.encode(next);
         user.updatePassword(encodedNewPassword);
         return ApiResponse.modified(null);
     }
+
 
     /**
      * 리프레시 토큰으로 새 액세스 토큰 발급

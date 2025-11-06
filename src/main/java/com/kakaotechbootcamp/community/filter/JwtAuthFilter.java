@@ -23,7 +23,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     // 필터 제외 경로 목록
     private static final String[] EXCLUDED_PATHS = {
-            "/auth/refresh", "/users/check-email", "/users/check-nickname", "/error",
+            "/auth/refresh", "/auth/password-reset", "/users/check-email", "/users/check-nickname", "/error",
             "/terms", "/privacy"
     };
 
