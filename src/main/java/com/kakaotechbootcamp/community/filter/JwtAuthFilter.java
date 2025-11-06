@@ -23,7 +23,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     // 필터 제외 경로 목록
     private static final String[] EXCLUDED_PATHS = {
-            "/auth/refresh", "/users/check-email", "/users/check-nickname", "/error"
+            "/auth/refresh", "/users/check-email", "/users/check-nickname", "/error",
+            "/terms", "/privacy"
     };
 
     // 필터 제외 경로 설정
@@ -37,8 +38,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return true;
         }
         
-        // 정적 리소스는 무조건 제외
-        if (path.startsWith("/files/") || path.equals("/files")) {
+        // 정적 리소스
+        if (path.startsWith("/files/") || path.equals("/files") ||
+            path.startsWith("/webjars/") || path.startsWith("/static/")) {
             return true;
         }
         

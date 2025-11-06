@@ -28,13 +28,13 @@
 
                 <div class="section-container" th:if="${sections != null and !sections.isEmpty()}" th:each="section : ${sections}">
                     <div class="content-section">
-                        <h2 th:if="${section.title != null and !section.title.isEmpty()}" th:text="${section.title}"></h2>
-                        <div th:if="${section.paragraphs != null and !section.paragraphs.isEmpty()}">
-                            <p th:each="paragraph : ${section.paragraphs}" th:text="${paragraph}"></p>
+                        <h2 th:if="${section.containsKey('title') and section['title'] != null and !section['title'].toString().isEmpty()}" th:text="${section['title']}"></h2>
+                        <div th:if="${section.containsKey('paragraphs') and section['paragraphs'] != null and !section['paragraphs'].isEmpty()}">
+                            <p th:each="paragraph : ${section['paragraphs']}" th:text="${paragraph}"></p>
                         </div>
-                        <div th:if="${section.lists != null and !section.lists.isEmpty()}">
+                        <div th:if="${section.containsKey('lists') and section['lists'] != null and !section['lists'].isEmpty()}">
                             <ul>
-                                <li th:each="item : ${section.lists}" th:text="${item}"></li>
+                                <li th:each="item : ${section['lists']}" th:text="${item}"></li>
                             </ul>
                         </div>
                     </div>
