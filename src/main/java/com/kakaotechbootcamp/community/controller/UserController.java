@@ -2,9 +2,7 @@ package com.kakaotechbootcamp.community.controller;
 
 import com.kakaotechbootcamp.community.common.ApiResponse;
 import com.kakaotechbootcamp.community.common.ImageProperties;
-import com.kakaotechbootcamp.community.dto.user.UserCreateRequestDto;
-import com.kakaotechbootcamp.community.dto.user.UserResponseDto;
-import com.kakaotechbootcamp.community.dto.user.UserUpdateRequestDto;
+import com.kakaotechbootcamp.community.dto.user.*;
 import com.kakaotechbootcamp.community.exception.BadRequestException;
 import com.kakaotechbootcamp.community.service.UserService;
 import jakarta.validation.Valid;
@@ -108,8 +106,13 @@ public class UserController {
      * - 의도: 현재/신규 비밀번호 검증 후 변경(공백/동일/불일치 시 400)
      */
     @PatchMapping("/{id}/password")
-    public ResponseEntity<ApiResponse<Void>> updatePassword(@PathVariable Integer id, @RequestBody Map<String, String> body) {
-        ApiResponse<Void> response = userService.updatePassword(id, body.get("currentPassword"), body.get("newPassword"));
+    public ResponseEntity<ApiResponse<Void>> updatePassword(
+            @PathVariable Integer id,
+            @Valid @RequestBody PasswordUpdateRequestDto request) {
+        ApiResponse<Void> response = userService.updatePassword(
+                id,
+                request.getNewPassword(),
+                request.getConfirmPassword());
         return ResponseEntity.status(response.getStatus()).body(response);
     }
 }
