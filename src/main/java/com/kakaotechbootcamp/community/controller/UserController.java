@@ -102,6 +102,16 @@ public class UserController {
 	}
 
     /**
+     * 회원 복구
+     * - 의도: deletedAt을 null로 설정하여 계정 복구
+     */
+    @PatchMapping("/{id}/restore")
+    public ResponseEntity<ApiResponse<Void>> restore(@PathVariable Integer id) {
+        ApiResponse<Void> response = userService.restore(id);
+        return ResponseEntity.status(response.getStatus()).body(response);
+    }
+
+    /**
      * 비밀번호 변경
      * - 의도: 현재/신규 비밀번호 검증 후 변경(공백/동일/불일치 시 400)
      */

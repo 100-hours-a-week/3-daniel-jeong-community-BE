@@ -59,7 +59,8 @@ public class UserService {
         String email = request.getEmail().trim().toLowerCase();
         String nickname = request.getNickname().trim();
 
-        if (userRepository.existsByEmail(email)) {
+        // 이메일 중복 검사 (삭제 대기 중인 계정도 포함)
+        if (userRepository.findByEmailIncludingDeleted(email).isPresent()) {
             throw new ConflictException("이미 사용 중인 이메일입니다");
         }
         if (userRepository.existsByNickname(nickname)) {
@@ -93,12 +94,13 @@ public class UserService {
     /**
      * 로그인
      * - 의도: 이메일/비밀번호 검증 후 JWT 토큰 발급 및 쿠키 설정
+     * - 로직: 소프트 삭제된 사용자도 조회하여 로그인 허용
      * - 에러: 이메일 없음/비밀번호 불일치 시 400(BadRequest)
      */
     @Transactional
     public ApiResponse<UserLoginResponseDto> login(UserLoginRequestDto request, HttpServletResponse response) {
         String email = request.getEmail().trim().toLowerCase();
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailIncludingDeleted(email)
                 .orElseThrow(() -> new BadRequestException("이메일 또는 비밀번호가 일치하지 않습니다"));
 
         if (!checkPassword(user, request.getPassword())) {
@@ -202,13 +204,31 @@ public class UserService {
     }
 
     /**
+     * 회원 복구
+     * - 의도: deletedAt을 null로 설정하여 계정 복구
+     */
+    @Transactional
+    public ApiResponse<Void> restore(Integer id) {
+        User user = userRepository.findByIdIncludingDeleted(id)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다"));
+        
+        if (user.getDeletedAt() == null) {
+            throw new BadRequestException("이미 활성화된 계정입니다");
+        }
+        
+        user.restore();
+        return ApiResponse.modified(null);
+    }
+
+    /**
      * 이메일 사용 가능 여부
      * - 반환: true=사용 가능, false=중복
      */
     @Transactional(readOnly = true)
     public ApiResponse<Map<String, Object>> isEmailAvailable(String email) {
         String emailLower = email.trim().toLowerCase();
-        boolean exists = userRepository.existsByEmail(emailLower);
+        // 이메일 중복 검사 (삭제 대기 중인 계정도 포함)
+        boolean exists = userRepository.findByEmailIncludingDeleted(emailLower).isPresent();
         
         Map<String, Object> result = new HashMap<>();
         result.put("available", !exists);
