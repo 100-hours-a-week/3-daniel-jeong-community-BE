@@ -2,6 +2,7 @@ package com.kakaotechbootcamp.community.service;
 
 import com.kakaotechbootcamp.community.common.ApiResponse;
 import com.kakaotechbootcamp.community.common.ImageType;
+import com.kakaotechbootcamp.community.config.JwtProperties;
 import com.kakaotechbootcamp.community.dto.user.*;
 import com.kakaotechbootcamp.community.entity.RefreshToken;
 import com.kakaotechbootcamp.community.entity.User;
@@ -14,7 +15,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,12 +38,7 @@ public class UserService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
-
-    @Value("${jwt.access-token-ttl-seconds}")
-    private long accessTokenTtlSeconds;
-
-    @Value("${jwt.refresh-token-ttl-seconds}")
-    private long refreshTokenTtlSeconds;
+    private final JwtProperties jwtProperties;
 
     /** 토큰 응답 record */
     public record TokenResponse(String accessToken, String refreshToken) {}
@@ -311,7 +306,7 @@ public class UserService {
         String newAccessToken = jwtProvider.createAccessToken(user.getId().longValue(), "USER");
 
         // access token 쿠키만 갱신
-        addTokenCookie(response, "accessToken", newAccessToken, (int) accessTokenTtlSeconds);
+        addTokenCookie(response, "accessToken", newAccessToken, (int) jwtProperties.getAccessTokenTtlSeconds());
 
         TokenResponseDto tokenResponse = new TokenResponseDto(newAccessToken, refreshTokenString);
         return ApiResponse.modified(tokenResponse);
@@ -325,7 +320,7 @@ public class UserService {
         RefreshToken refreshEntity = new RefreshToken();
         refreshEntity.setUserId(user.getId().longValue());
         refreshEntity.setToken(refreshToken);
-        refreshEntity.setExpiresAt(Instant.now().plusSeconds(refreshTokenTtlSeconds));
+        refreshEntity.setExpiresAt(Instant.now().plusSeconds(jwtProperties.getRefreshTokenTtlSeconds()));
         refreshEntity.setRevoked(false);
         refreshTokenRepository.save(refreshEntity);
 
@@ -334,8 +329,8 @@ public class UserService {
 
     /** AccessToken + RefreshToken 쿠키를 한번에 추가 */
     private void addTokenCookies(HttpServletResponse response, TokenResponse tokenResponse, boolean rememberMe) {
-        addTokenCookie(response, "accessToken", tokenResponse.accessToken(), (int) accessTokenTtlSeconds);
-        int refreshMaxAge = rememberMe ? (int) refreshTokenTtlSeconds : -1; // -1: 세션 쿠키
+        addTokenCookie(response, "accessToken", tokenResponse.accessToken(), (int) jwtProperties.getAccessTokenTtlSeconds());
+        int refreshMaxAge = rememberMe ? (int) jwtProperties.getRefreshTokenTtlSeconds() : -1; // -1: 세션 쿠키
         addTokenCookie(response, "refreshToken", tokenResponse.refreshToken(), refreshMaxAge);
     }
 

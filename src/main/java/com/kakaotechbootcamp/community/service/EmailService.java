@@ -7,8 +7,8 @@ import com.kakaotechbootcamp.community.exception.NotFoundException;
 import com.kakaotechbootcamp.community.repository.UserRepository;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import com.kakaotechbootcamp.community.config.EmailProperties;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,12 +30,7 @@ public class EmailService {
     private final UserRepository userRepository;
     private final TemplateEngine templateEngine;
     private final PasswordEncoder passwordEncoder;
-
-    @Value("${email.password-reset.min-interval-ms}")
-    private long passwordResetMinIntervalMs;
-
-    @Value("${email.password-reset.code-expiration-minutes}")
-    private int codeExpirationMinutes;
+    private final EmailProperties emailProperties;
 
     private record VerificationCodeInfo(String code, long expiresAt) {}
 
@@ -50,15 +45,15 @@ public class EmailService {
 
         long currentTime = System.currentTimeMillis();
         Long lastSentTime = emailLastSentTime.get(email);
-        if (lastSentTime != null && (currentTime - lastSentTime) < passwordResetMinIntervalMs) {
-            long remainingMs = passwordResetMinIntervalMs - (currentTime - lastSentTime);
+        if (lastSentTime != null && (currentTime - lastSentTime) < emailProperties.getMinIntervalMs()) {
+            long remainingMs = emailProperties.getMinIntervalMs() - (currentTime - lastSentTime);
             String remainingTime = formatRemainingTime(remainingMs);
-            long intervalMinutes = passwordResetMinIntervalMs / 60000;
+            long intervalMinutes = emailProperties.getMinIntervalMs() / 60000;
             throw new BadRequestException("이메일 발송은 " + intervalMinutes + "분에 1회만 가능합니다. 남은 시간: " + remainingTime);
         }
 
         String code = generateVerificationCode();
-        verificationCodes.put(email, new VerificationCodeInfo(code, currentTime + (codeExpirationMinutes * 60L * 1000)));
+        verificationCodes.put(email, new VerificationCodeInfo(code, currentTime + (emailProperties.getCodeExpirationMinutes() * 60L * 1000)));
         verifiedEmails.remove(email); // 재발송 시 이전 검증 상태 초기화
         emailLastSentTime.put(email, currentTime);
 
@@ -71,7 +66,7 @@ public class EmailService {
             
             Context context = new Context();
             context.setVariable("code", code);
-            context.setVariable("expirationMinutes", codeExpirationMinutes);
+            context.setVariable("expirationMinutes", emailProperties.getCodeExpirationMinutes());
             
             String htmlContent = templateEngine.process("password-reset", context);
             helper.setText(htmlContent, true);
