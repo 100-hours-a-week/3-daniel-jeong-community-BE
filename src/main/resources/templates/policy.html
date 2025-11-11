@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+    <title th:text="${title} ?: '정책'">정책</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div th:replace="header :: headerFragment"></div>
+    </header>
+
+    <!-- 메인 콘텐츠 -->
+    <main class="main">
+        <div class="container">
+            <div class="main-content">
+                <div class="page-title" th:if="${title != null}">
+                    <h1 th:text="${title}"></h1>
+                    <p th:if="${subtitle != null and !subtitle.isEmpty()}" th:text="${subtitle}"></p>
+                </div>
+                
+                <div class="content-section" th:if="${date != null and !date.isEmpty()}">
+                    <p class="date" th:text="${date}"></p>
+                </div>
+
+                <div class="section-container" th:if="${sections != null and !sections.isEmpty()}" th:each="section : ${sections}">
+                    <div class="content-section">
+                        <h2 th:if="${section.title != null and !section.title.isEmpty()}" th:text="${section.title}"></h2>
+                        <div th:if="${section.paragraphs != null and !section.paragraphs.isEmpty()}">
+                            <p th:each="paragraph : ${section.paragraphs}" th:text="${paragraph}"></p>
+                        </div>
+                        <div th:if="${section.lists != null and !section.lists.isEmpty()}">
+                            <ul>
+                                <li th:each="item : ${section.lists}" th:text="${item}"></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="highlight" th:if="${contactTitle != null and !contactTitle.isEmpty()}">
+                    <p><strong th:text="${contactTitle}"></strong></p>
+                    <p th:if="${contactInfo != null and !contactInfo.isEmpty()}" th:text="${contactInfo}"></p>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
