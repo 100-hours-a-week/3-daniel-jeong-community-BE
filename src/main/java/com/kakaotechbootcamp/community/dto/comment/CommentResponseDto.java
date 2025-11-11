@@ -10,7 +10,8 @@ public record CommentResponseDto(
         String content,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
-        UserReferenceDto author
+        UserReferenceDto author,
+        Integer parentId
 ) {
     public static CommentResponseDto from(Comment c) {
         return new CommentResponseDto(
@@ -18,7 +19,8 @@ public record CommentResponseDto(
                 c.getContent(),
                 c.getCreatedAt(),
                 c.getUpdatedAt(),
-                UserReferenceDto.from(c.getUser())
+                UserReferenceDto.from(c.getUser()),
+                c.getParentId()
         );
     }
 }
