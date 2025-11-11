@@ -36,22 +36,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return true;
         }
         
-        // 정적 리소스는 필터 제외
-        if (path.startsWith(Constants.StaticPath.FILES) || path.startsWith(Constants.StaticPath.WEBJARS) || path.startsWith(Constants.StaticPath.STATIC)) {
+        // 정적 리소스는 필터 제외 (확장자 기반)
+        if (isStaticResource(path)) {
             return true;
         }
         
         // 제외 경로 목록에 포함된 경로는 필터 제외
-        String[] excluded = {
-                Constants.ExcludePath.AUTH_REFRESH,
-                Constants.ExcludePath.AUTH_PASSWORD_RESET,
-                Constants.ExcludePath.USERS_CHECK_EMAIL,
-                Constants.ExcludePath.USERS_CHECK_NICKNAME,
-                Constants.ExcludePath.ERROR,
-                Constants.ExcludePath.TERMS,
-                Constants.ExcludePath.PRIVACY
-        };
-        if (Arrays.stream(excluded).anyMatch(path::startsWith)) {
+        if (Constants.ExcludePath.FILTER_EXCLUDED.stream().anyMatch(path::startsWith)) {
             return true;
         }
         
@@ -104,6 +95,31 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    /**
+     * 정적 리소스 여부 확인
+     * - 경로 기반: /files/, /webjars/
+     * - resources/static 하위 리소스: 실제 파일 존재 여부로 확인
+     */
+    private boolean isStaticResource(String path) {
+        // 경로 기반 체크
+        if (path.startsWith(Constants.StaticPath.FILES) || 
+            path.startsWith(Constants.StaticPath.WEBJARS)) {
+            return true;
+        }
+        
+        // Spring Boot 기본 정적 리소스 경로 체크
+        // resources/static 하위 파일은 루트 경로로 서빙됨
+        // 확장자가 있고, API 경로가 아니면 정적 리소스로 간주
+        if (path.contains(".") && 
+            !path.startsWith(Constants.ApiPath.AUTH) &&
+            !path.startsWith(Constants.ApiPath.USERS) &&
+            !path.startsWith(Constants.ApiPath.POSTS)) {
+            return true;
+        }
+        
+        return false;
     }
 
     /**
