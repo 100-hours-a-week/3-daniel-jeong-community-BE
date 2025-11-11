@@ -24,6 +24,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtProvider jwtProvider;
     private final ObjectMapper objectMapper;
 
+    // 토큰 관련 상수
+    private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String ACCESS_TOKEN_COOKIE = "accessToken";
+    private static final int BEARER_PREFIX_LENGTH = BEARER_PREFIX.length();
+    
+    // Request Attribute 상수
+    private static final String ATTR_USER_ID = "userId";
+    private static final String ATTR_ROLE = "role";
+    
+    // 응답 Content-Type 상수
+    private static final String CONTENT_TYPE_JSON = "application/json";
+    private static final String CHARSET_UTF8 = "UTF-8";
+
     // 필터 제외 경로 목록
     private static final String[] EXCLUDED_PATHS = {
             "/auth/refresh", "/auth/password-reset", "/users/check-email", "/users/check-nickname", "/error",
@@ -91,8 +105,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             } else {
                 ApiResponse<Void> apiResponse = ApiResponse.unauthorized(null);
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
+                response.setContentType(CONTENT_TYPE_JSON);
+                response.setCharacterEncoding(CHARSET_UTF8);
                 response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
                 response.getWriter().flush();
             }
@@ -109,16 +123,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
      */
     private Optional<String> extractToken(HttpServletRequest request) {
         // 헤더에서 추출 시도
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return Optional.of(authHeader.substring(7));
+        String authHeader = request.getHeader(AUTHORIZATION_HEADER);
+        if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
+            return Optional.of(authHeader.substring(BEARER_PREFIX_LENGTH));
         }
         
         // 쿠키에서 추출 시도
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             return Arrays.stream(cookies)
-                    .filter(c -> "accessToken".equals(c.getName()))
+                    .filter(c -> ACCESS_TOKEN_COOKIE.equals(c.getName()))
                     .map(Cookie::getValue)
                     .findFirst();
         }
@@ -134,8 +148,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private boolean validateAndSetAttributes(String token, HttpServletRequest request) {
         try {
             Claims body = jwtProvider.parse(token).getBody();
-            request.setAttribute("userId", Integer.valueOf(body.getSubject()));
-            request.setAttribute("role", body.get("role"));
+            request.setAttribute(ATTR_USER_ID, Integer.valueOf(body.getSubject()));
+            request.setAttribute(ATTR_ROLE, body.get(ATTR_ROLE));
             return true;
         } catch (Exception e) {
             return false;
