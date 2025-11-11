@@ -1,5 +1,7 @@
 package com.kakaotechbootcamp.community.filter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kakaotechbootcamp.community.common.ApiResponse;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -20,6 +22,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtProvider jwtProvider;
+    private final ObjectMapper objectMapper;
 
     // 필터 제외 경로 목록
     private static final String[] EXCLUDED_PATHS = {
@@ -86,7 +89,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if ("/".equals(uri) || "/index".equals(uri)) {
                 response.sendRedirect("/login");
             } else {
+                ApiResponse<Void> apiResponse = ApiResponse.unauthorized(null);
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
+                response.getWriter().flush();
             }
             return;
         }
