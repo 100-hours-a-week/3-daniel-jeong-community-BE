@@ -22,6 +22,14 @@ import java.util.function.Consumer;
 public class JwtProvider {
     private final JwtProperties jwtProperties;
 
+    // JWT Claim 상수
+    public static final String CLAIM_ROLE = "role";
+    private static final String CLAIM_TYPE = "typ";
+    private static final String TOKEN_TYPE_REFRESH = "refresh";
+    
+    // 역할 상수
+    public static final String ROLE_USER = "USER";
+
     private Key getKey() {
         return Keys.hmacShaKeyFor(Base64.getDecoder().decode(jwtProperties.getSecretKey())
         );
@@ -44,13 +52,13 @@ public class JwtProvider {
 
     public String createAccessToken(Long userId, String role) {
         return createToken(userId, jwtProperties.getAccessTokenTtlSeconds(), builder -> {
-            builder.claim("role", role);
+            builder.claim(CLAIM_ROLE, role);
         });
     }
 
     public String createRefreshToken(Long userId) {
         return createToken(userId, jwtProperties.getRefreshTokenTtlSeconds(), builder -> {
-            builder.claim("typ", "refresh")
+            builder.claim(CLAIM_TYPE, TOKEN_TYPE_REFRESH)
                     .setId(UUID.randomUUID().toString());
         });
     }

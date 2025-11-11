@@ -1,6 +1,7 @@
 package com.kakaotechbootcamp.community.controller;
 
 import com.kakaotechbootcamp.community.common.ApiResponse;
+import com.kakaotechbootcamp.community.common.Constants;
 import com.kakaotechbootcamp.community.service.PostLikeService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,7 +32,7 @@ public class PostLikeController {
             @PathVariable Integer postId,
             @RequestBody Map<String, Integer> body
     ) {
-        Map<String, Object> result = likeService.saveLike(body.get("userId"), postId);
+        Map<String, Object> result = likeService.saveLike(body.get(Constants.RequestKey.USER_ID), postId);
         return ResponseEntity.status(201).body(ApiResponse.created(result));
     }
 
@@ -46,7 +47,7 @@ public class PostLikeController {
             @PathVariable Integer postId,
             @RequestBody Map<String, Integer> body
     ) {
-        Map<String, Object> result = likeService.removeLike(body.get("userId"), postId);
+        Map<String, Object> result = likeService.removeLike(body.get(Constants.RequestKey.USER_ID), postId);
         return ResponseEntity.ok(ApiResponse.deleted(result));
     }
 }

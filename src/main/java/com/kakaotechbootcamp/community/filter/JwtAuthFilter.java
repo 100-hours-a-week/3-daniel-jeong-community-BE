@@ -2,6 +2,7 @@ package com.kakaotechbootcamp.community.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kakaotechbootcamp.community.common.ApiResponse;
+import com.kakaotechbootcamp.community.common.Constants;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -24,26 +25,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtProvider jwtProvider;
     private final ObjectMapper objectMapper;
 
-    // 토큰 관련 상수
-    private static final String AUTHORIZATION_HEADER = "Authorization";
-    private static final String BEARER_PREFIX = "Bearer ";
-    private static final String ACCESS_TOKEN_COOKIE = "accessToken";
-    private static final int BEARER_PREFIX_LENGTH = BEARER_PREFIX.length();
-    
-    // Request Attribute 상수
-    private static final String ATTR_USER_ID = "userId";
-    private static final String ATTR_ROLE = "role";
-    
-    // 응답 Content-Type 상수
-    private static final String CONTENT_TYPE_JSON = "application/json";
-    private static final String CHARSET_UTF8 = "UTF-8";
-
-    // 필터 제외 경로 목록
-    private static final String[] EXCLUDED_PATHS = {
-            "/auth/refresh", "/auth/password-reset", "/users/check-email", "/users/check-nickname", "/error",
-            "/terms", "/privacy"
-    };
-
     // 필터 제외 경로 설정
     @Override
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
@@ -51,27 +32,36 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String method = request.getMethod();
         
         // CORS preflight 요청(OPTIONS)은 필터 제외
-        if ("OPTIONS".equals(method)) {
+        if (Constants.HttpMethod.OPTIONS.equals(method)) {
             return true;
         }
         
         // 정적 리소스는 필터 제외
-        if (path.startsWith("/files/") || path.startsWith("/webjars/") || path.startsWith("/static/")) {
+        if (path.startsWith(Constants.StaticPath.FILES) || path.startsWith(Constants.StaticPath.WEBJARS) || path.startsWith(Constants.StaticPath.STATIC)) {
             return true;
         }
         
         // 제외 경로 목록에 포함된 경로는 필터 제외
-        if (Arrays.stream(EXCLUDED_PATHS).anyMatch(path::startsWith)) {
+        String[] excluded = {
+                Constants.ExcludePath.AUTH_REFRESH,
+                Constants.ExcludePath.AUTH_PASSWORD_RESET,
+                Constants.ExcludePath.USERS_CHECK_EMAIL,
+                Constants.ExcludePath.USERS_CHECK_NICKNAME,
+                Constants.ExcludePath.ERROR,
+                Constants.ExcludePath.TERMS,
+                Constants.ExcludePath.PRIVACY
+        };
+        if (Arrays.stream(excluded).anyMatch(path::startsWith)) {
             return true;
         }
         
         // /auth 경로는 POST(로그인), DELETE(로그아웃) 제외
-        if (path.equals("/auth") && ("POST".equals(method) || "DELETE".equals(method))) {
+        if (path.equals(Constants.ApiPath.AUTH) && (Constants.HttpMethod.POST.equals(method) || Constants.HttpMethod.DELETE.equals(method))) {
             return true;
         }
         
         // /users 경로는 POST만 제외 (회원가입)
-        if (path.equals("/users") && "POST".equals(method)) {
+        if (path.equals(Constants.ApiPath.USERS) && Constants.HttpMethod.POST.equals(method)) {
             return true;
         }
         
@@ -87,7 +77,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     ) throws IOException, ServletException {
 
         String path = request.getRequestURI();
-        boolean isPublicGet = path.startsWith("/posts") && "GET".equals(request.getMethod());
+        boolean isPublicGet = path.startsWith(Constants.ApiPath.POSTS) && Constants.HttpMethod.GET.equals(request.getMethod());
         Optional<String> token = extractToken(request);
 
         // 공개 GET 요청: 토큰이 있으면 userId 설정, 없어도 진행
@@ -100,13 +90,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         // 인증 필요: 토큰 없거나 유효하지 않으면 에러
         if (token.isEmpty() || !validateAndSetAttributes(token.get(), request)) {
             String uri = request.getRequestURI();
-            if ("/".equals(uri) || "/index".equals(uri)) {
-                response.sendRedirect("/login");
+            if (Constants.PagePath.ROOT.equals(uri) || Constants.PagePath.INDEX.equals(uri)) {
+                response.sendRedirect(Constants.PagePath.LOGIN);
             } else {
                 ApiResponse<Void> apiResponse = ApiResponse.unauthorized(null);
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType(CONTENT_TYPE_JSON);
-                response.setCharacterEncoding(CHARSET_UTF8);
+                response.setContentType(Constants.ContentType.APPLICATION_JSON);
+                response.setCharacterEncoding(Constants.ContentType.UTF8);
                 response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
                 response.getWriter().flush();
             }
@@ -123,16 +113,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
      */
     private Optional<String> extractToken(HttpServletRequest request) {
         // 헤더에서 추출 시도
-        String authHeader = request.getHeader(AUTHORIZATION_HEADER);
-        if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
-            return Optional.of(authHeader.substring(BEARER_PREFIX_LENGTH));
+        String authHeader = request.getHeader(Constants.Header.AUTHORIZATION);
+        if (authHeader != null && authHeader.startsWith(Constants.Header.BEARER_PREFIX)) {
+            return Optional.of(authHeader.substring(Constants.Header.BEARER_PREFIX_LENGTH));
         }
         
         // 쿠키에서 추출 시도
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             return Arrays.stream(cookies)
-                    .filter(c -> ACCESS_TOKEN_COOKIE.equals(c.getName()))
+                    .filter(c -> Constants.Cookie.ACCESS_TOKEN.equals(c.getName()))
                     .map(Cookie::getValue)
                     .findFirst();
         }
@@ -148,8 +138,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private boolean validateAndSetAttributes(String token, HttpServletRequest request) {
         try {
             Claims body = jwtProvider.parse(token).getBody();
-            request.setAttribute(ATTR_USER_ID, Integer.valueOf(body.getSubject()));
-            request.setAttribute(ATTR_ROLE, body.get(ATTR_ROLE));
+            request.setAttribute(Constants.RequestAttr.USER_ID, Integer.valueOf(body.getSubject()));
+            request.setAttribute(Constants.RequestAttr.ROLE, body.get(JwtProvider.CLAIM_ROLE));
             return true;
         } catch (Exception e) {
             return false;

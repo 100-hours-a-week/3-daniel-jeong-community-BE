@@ -1,6 +1,7 @@
 package com.kakaotechbootcamp.community.service;
 
 import com.kakaotechbootcamp.community.common.ApiResponse;
+import com.kakaotechbootcamp.community.common.Constants;
 import com.kakaotechbootcamp.community.common.ImageType;
 import com.kakaotechbootcamp.community.config.JwtProperties;
 import com.kakaotechbootcamp.community.dto.user.*;
@@ -138,8 +139,8 @@ public class UserService {
         });
         
         // 쿠키 즉시 만료
-        addTokenCookie(response, "accessToken", null, 0);
-        addTokenCookie(response, "refreshToken", null, 0);
+        addTokenCookie(response, Constants.Cookie.ACCESS_TOKEN, null, 0);
+        addTokenCookie(response, Constants.Cookie.REFRESH_TOKEN, null, 0);
     }
 
     /**
@@ -303,10 +304,10 @@ public class UserService {
                 .orElseThrow(() -> new BadRequestException("사용자를 찾을 수 없습니다"));
 
         // refresh token은 유지하고 access token만 새로 발급
-        String newAccessToken = jwtProvider.createAccessToken(user.getId().longValue(), "USER");
+        String newAccessToken = jwtProvider.createAccessToken(user.getId().longValue(), JwtProvider.ROLE_USER);
 
         // access token 쿠키만 갱신
-        addTokenCookie(response, "accessToken", newAccessToken, (int) jwtProperties.getAccessTokenTtlSeconds());
+        addTokenCookie(response, Constants.Cookie.ACCESS_TOKEN, newAccessToken, (int) jwtProperties.getAccessTokenTtlSeconds());
 
         TokenResponseDto tokenResponse = new TokenResponseDto(newAccessToken, refreshTokenString);
         return ApiResponse.modified(tokenResponse);
@@ -314,7 +315,7 @@ public class UserService {
 
     /** Access, Refresh 토큰을 새로 발급하고 DB에 저장 */
     private TokenResponse generateAndSaveTokens(User user) {
-        String accessToken = jwtProvider.createAccessToken(user.getId().longValue(), "USER");
+        String accessToken = jwtProvider.createAccessToken(user.getId().longValue(), JwtProvider.ROLE_USER);
         String refreshToken = jwtProvider.createRefreshToken(user.getId().longValue());
 
         RefreshToken refreshEntity = new RefreshToken();
@@ -329,9 +330,9 @@ public class UserService {
 
     /** AccessToken + RefreshToken 쿠키를 한번에 추가 */
     private void addTokenCookies(HttpServletResponse response, TokenResponse tokenResponse, boolean rememberMe) {
-        addTokenCookie(response, "accessToken", tokenResponse.accessToken(), (int) jwtProperties.getAccessTokenTtlSeconds());
+        addTokenCookie(response, Constants.Cookie.ACCESS_TOKEN, tokenResponse.accessToken(), (int) jwtProperties.getAccessTokenTtlSeconds());
         int refreshMaxAge = rememberMe ? (int) jwtProperties.getRefreshTokenTtlSeconds() : -1; // -1: 세션 쿠키
-        addTokenCookie(response, "refreshToken", tokenResponse.refreshToken(), refreshMaxAge);
+        addTokenCookie(response, Constants.Cookie.REFRESH_TOKEN, tokenResponse.refreshToken(), refreshMaxAge);
     }
 
     /** 공통 쿠키 생성 로직 */
@@ -355,7 +356,7 @@ public class UserService {
             return java.util.Optional.empty();
         }
         return java.util.Arrays.stream(cookies)
-                .filter(cookie -> "refreshToken".equals(cookie.getName()))
+                .filter(cookie -> Constants.Cookie.REFRESH_TOKEN.equals(cookie.getName()))
                 .map(Cookie::getValue)
                 .findFirst();
     }
