@@ -20,6 +20,7 @@ public class UserResponseDto {
 	private final String profileImageKey;
 	private final LocalDateTime createdAt;
 	private final LocalDateTime updatedAt;
+	private final LocalDateTime deletedAt;
 
     /**
      * 엔티티 → 응답 DTO 변환
@@ -32,7 +33,8 @@ public class UserResponseDto {
 				user.getNickname(),
 				user.getProfileImageKey(),
 				user.getCreatedAt(),
-				user.getUpdatedAt()
+				user.getUpdatedAt(),
+				user.getDeletedAt()
 		);
 	}
 }

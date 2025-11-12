@@ -31,3 +31,9 @@ image:
     - webp
   profile-path-format: "user/%d/profile/%s" # 경로 포맷 (String.format)
   post-path-format: "post/%d/images/%s"     # 경로 포맷 (String.format)
+
+# 이메일 설정
+email:
+  password-reset:
+    min-interval-ms: 60000  # 비밀번호 재설정 인증번호 발송 최소 간격 (밀리초)
+    code-expiration-minutes: 10  # 인증번호 유효 시간 (분)

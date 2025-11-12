@@ -17,16 +17,18 @@ public record PostListItemDto(
         String title,
         LocalDateTime createdAt,
         UserReferenceDto author,
-        PostStatResponseDto stats
+        PostStatResponseDto stats,
+        boolean isLiked
 ) {
-    public static List<PostListItemDto> from(List<Post> posts, Map<Integer, PostStat> postIdToStat) {
+    public static List<PostListItemDto> from(List<Post> posts, Map<Integer, PostStat> postIdToStat, Map<Integer, Boolean> postIdToIsLiked) {
         return posts.stream()
                 .map(p -> new PostListItemDto(
                         p.getId(),
                         p.getTitle(),
                         p.getCreatedAt(),
                         UserReferenceDto.from(p.getUser()),
-                        PostStatResponseDto.from(postIdToStat.get(p.getId()))
+                        PostStatResponseDto.from(postIdToStat.get(p.getId())),
+                        postIdToIsLiked.getOrDefault(p.getId(), false)
                 ))
                 .toList();
     }

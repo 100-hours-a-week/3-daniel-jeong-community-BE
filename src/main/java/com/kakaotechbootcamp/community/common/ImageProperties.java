@@ -39,4 +39,22 @@ public class ImageProperties {
         }
         return set;
     }
+    
+    /**
+     * Content-Type에서 확장자 추출 (예: image/png -> png)
+     */
+    public String extractExtensionFromContentType(String contentType) {
+        if (contentType == null || !contentType.startsWith("image/")) {
+            return null;
+        }
+        return contentType.substring("image/".length());
+    }
+    
+    /**
+     * Content-Type이 허용된 확장자인지 확인
+     */
+    public boolean isAllowedContentType(String contentType) {
+        String extension = extractExtensionFromContentType(contentType);
+        return extension != null && getAllowedExtensionSet().contains(extension);
+    }
 }

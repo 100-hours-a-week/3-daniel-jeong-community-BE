@@ -14,4 +14,8 @@ public interface SoftDeletable {
     default void softDelete() {
         setDeletedAt(LocalDateTime.now());
     }
+    
+    default void restore() {
+        setDeletedAt(null);
+    }
 }
