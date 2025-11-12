@@ -22,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -47,7 +46,7 @@ public class UserService {
     /**
      * 회원가입
      * - 의도: 이메일/닉네임 중복 검사 후 사용자 생성
-     * - 프로필 이미지: 파일이 있으면 업로드 후 profileImageKey 설정
+     * - 로직: 프로필 이미지 파일이 있으면 업로드 후 profileImageKey 설정, 기존 objectKey 제공 시 검증 후 설정
      * - 에러: 중복 시 409(Conflict)
      */
     @Transactional
@@ -55,34 +54,13 @@ public class UserService {
         String email = request.getEmail().trim().toLowerCase();
         String nickname = request.getNickname().trim();
 
-        // 이메일 중복 검사 (삭제 대기 중인 계정도 포함)
-        if (userRepository.findByEmailIncludingDeleted(email).isPresent()) {
-            throw new ConflictException("이미 사용 중인 이메일입니다");
-        }
-        if (userRepository.existsByNickname(nickname)) {
-            throw new ConflictException("이미 사용 중인 닉네임입니다");
-        }
+        validateEmailNotExists(email);
+        validateNicknameNotExists(nickname);
         
-        String encodedPassword = passwordEncoder.encode(request.getPassword());
-        User user = new User(email, encodedPassword, nickname);
+        User user = new User(email, passwordEncoder.encode(request.getPassword()), nickname);
         User saved = userRepository.save(user);
 
-        // 프로필 이미지 처리
-        if (profileImage != null && !profileImage.isEmpty()) {
-            // 프로필 이미지 업로드 및 저장
-            com.kakaotechbootcamp.community.dto.image.ImageUploadResponseDto uploadResponse = 
-                    imageUploadService.uploadMultipart(ImageType.PROFILE, saved.getId(), profileImage);
-            saved.updateProfileImageKey(uploadResponse.objectKey());
-            saved = userRepository.save(saved);
-        } else if (request.getProfileImageKey() != null && !request.getProfileImageKey().trim().isEmpty()) {
-            // 기존 objectKey가 제공된 경우 (하위 호환성)
-            String profileKey = request.getProfileImageKey().trim();
-            if (!profileKey.isEmpty()) {
-                imageUploadService.validateObjectKey(ImageType.PROFILE, profileKey, saved.getId());
-                saved.updateProfileImageKey(profileKey);
-                saved = userRepository.save(saved);
-            }
-        }
+        handleProfileImage(saved, profileImage, request.getProfileImageKey());
 
         return ApiResponse.created(UserResponseDto.from(saved));
     }
@@ -103,23 +81,15 @@ public class UserService {
             throw new BadRequestException("이메일 또는 비밀번호가 일치하지 않습니다");
         }
 
-        // 기존 리프레시 토큰 무효화
         refreshTokenRepository.deleteByUserId(user.getId().longValue());
-
-        // 새로운 토큰 발급 및 저장
         TokenResponse tokenResponse = generateAndSaveTokens(user);
+        addTokenCookies(response, tokenResponse, Boolean.TRUE.equals(request.getRememberMe()));
 
-        // 쿠키 추가
-        boolean rememberMe = Boolean.TRUE.equals(request.getRememberMe());
-        addTokenCookies(response, tokenResponse, rememberMe);
-
-        UserLoginResponseDto loginResponse = new UserLoginResponseDto(
+        return ApiResponse.modified(new UserLoginResponseDto(
                 tokenResponse.accessToken(),
                 tokenResponse.refreshToken(),
                 UserResponseDto.from(user)
-        );
-
-        return ApiResponse.modified(loginResponse);
+        ));
     }
 
     /**
@@ -128,17 +98,14 @@ public class UserService {
      */
     @Transactional
     public void logout(HttpServletRequest request, HttpServletResponse response) {
-        // 쿠키에서 refresh token 추출 (만료된 토큰이어도 문자열은 있음)
-        extractRefreshTokenFromCookie(request).ifPresent(refreshTokenString -> {
-            // DB에서 refresh token 찾아서 무효화
-            refreshTokenRepository.findByTokenAndRevokedFalse(refreshTokenString)
-                    .ifPresent(token -> {
-                        token.setRevoked(true);
-                        refreshTokenRepository.save(token);
-                    });
-        });
+        extractRefreshTokenFromCookie(request).ifPresent(refreshTokenString ->
+                refreshTokenRepository.findByTokenAndRevokedFalse(refreshTokenString)
+                        .ifPresent(token -> {
+                            token.setRevoked(true);
+                            refreshTokenRepository.save(token);
+                        })
+        );
         
-        // 쿠키 즉시 만료
         addTokenCookie(response, Constants.Cookie.ACCESS_TOKEN, null, 0);
         addTokenCookie(response, Constants.Cookie.REFRESH_TOKEN, null, 0);
     }
@@ -150,9 +117,7 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public ApiResponse<UserResponseDto> getById(Integer id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다"));
-        return ApiResponse.modified(UserResponseDto.from(user));
+        return ApiResponse.modified(UserResponseDto.from(findUserById(id)));
     }
 
     /**
@@ -163,27 +128,15 @@ public class UserService {
      */
     @Transactional
     public ApiResponse<UserResponseDto> update(Integer id, UserUpdateRequestDto request) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다"));
+        User user = findUserById(id);
 
         if (request.getNickname() != null && !request.getNickname().isBlank()) {
-            String newNickname = request.getNickname().trim();
-            if (!newNickname.equals(user.getNickname()) && userRepository.existsByNicknameAndIdNot(newNickname, id)) {
-                throw new ConflictException("이미 사용 중인 닉네임입니다");
-            }
-            user.updateNickname(newNickname);
+            updateNickname(user, request.getNickname().trim(), id);
         }
         if (request.getProfileImageKey() != null) {
-            String newProfileKey = request.getProfileImageKey().trim();
-            String finalProfileKey = newProfileKey.isEmpty() ? null : newProfileKey;
-            
-            // 프로필 이미지 objectKey 검증
-            if (finalProfileKey != null) {
-                imageUploadService.validateObjectKey(ImageType.PROFILE, finalProfileKey, id);
-            }
-            
-            user.updateProfileImageKey(finalProfileKey);
+            updateProfileImageKey(user, request.getProfileImageKey().trim(), id);
         }
+        
         return ApiResponse.modified(UserResponseDto.from(user));
     }
 
@@ -193,9 +146,7 @@ public class UserService {
      */
     @Transactional
     public ApiResponse<Void> delete(Integer id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다"));
-        user.softDelete();
+        findUserById(id).softDelete();
         return ApiResponse.deleted(null);
     }
 
@@ -219,62 +170,53 @@ public class UserService {
     /**
      * 이메일 사용 가능 여부
      * - 반환: true=사용 가능, false=중복
+     * - 로직: 삭제 대기 중인 계정도 포함하여 중복 검사
      */
     @Transactional(readOnly = true)
     public ApiResponse<Map<String, Object>> isEmailAvailable(String email) {
-        String emailLower = email.trim().toLowerCase();
-        // 이메일 중복 검사 (삭제 대기 중인 계정도 포함)
-        boolean exists = userRepository.findByEmailIncludingDeleted(emailLower).isPresent();
-        
-        Map<String, Object> result = new HashMap<>();
-        result.put("available", !exists);
-        
-        return ApiResponse.modified(result);
+        boolean exists = userRepository.findByEmailIncludingDeleted(email.trim().toLowerCase()).isPresent();
+        return ApiResponse.modified(Map.of("available", !exists));
     }
 
     /**
      * 닉네임 사용 가능 여부
      * - 반환: true=사용 가능, false=중복
+     * - 로직: 삭제 대기 중인 계정도 포함하여 중복 검사
      */
     @Transactional(readOnly = true)
     public ApiResponse<Boolean> isNicknameAvailable(String nickname) {
-        boolean exists = userRepository.existsByNickname(nickname.trim());
+        boolean exists = userRepository.countByNicknameIncludingDeleted(nickname.trim()) > 0;
         return ApiResponse.modified(!exists);
     }
 
     /**
      * 비밀번호 변경
-     * - 현재 비밀번호로 검증 후 새 비밀번호 + 확인 비밀번호 검증 후 변경
+     * - 의도: 새 비밀번호 + 확인 비밀번호 검증 후 변경
+     * - 로직: 새 비밀번호와 현재 비밀번호 동일 여부 확인
      */
     @Transactional
     public ApiResponse<Void> updatePassword(Integer id, String newPassword, String confirmPassword) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다"));
+        User user = findUserById(id);
 
-        String next = newPassword == null ? "" : newPassword.trim();
-        if (next.isEmpty()) {
+        String trimmedNewPassword = (newPassword == null ? "" : newPassword).trim();
+        String trimmedConfirm = (confirmPassword == null ? "" : confirmPassword).trim();
+
+        if (trimmedNewPassword.isEmpty()) {
             throw new BadRequestException("새 비밀번호를 입력해주세요");
         }
-
-        String confirm = confirmPassword == null ? "" : confirmPassword.trim();
-        if (confirm.isEmpty()) {
+        if (trimmedConfirm.isEmpty()) {
             throw new BadRequestException("비밀번호 확인을 입력해주세요");
         }
-
-        if (!next.equals(confirm)) {
+        if (!trimmedNewPassword.equals(trimmedConfirm)) {
             throw new BadRequestException("새 비밀번호와 비밀번호 확인이 일치하지 않습니다");
         }
-
-        // 새 비밀번호가 현재 비밀번호와 동일한지 확인
-        if (passwordEncoder.matches(next, user.getPassword())) {
+        if (passwordEncoder.matches(trimmedNewPassword, user.getPassword())) {
             throw new BadRequestException("이전 비밀번호와 새 비밀번호가 동일합니다");
         }
 
-        String encodedNewPassword = passwordEncoder.encode(next);
-        user.updatePassword(encodedNewPassword);
+        user.updatePassword(passwordEncoder.encode(trimmedNewPassword));
         return ApiResponse.modified(null);
     }
-
 
     /**
      * 리프레시 토큰으로 새 액세스 토큰 발급
@@ -286,10 +228,7 @@ public class UserService {
         String refreshTokenString = extractRefreshTokenFromCookie(request)
                 .orElseThrow(() -> new BadRequestException("리프레시 토큰이 없습니다"));
 
-        var parsedRefreshToken = jwtProvider.parse(refreshTokenString);
-
-        RefreshToken entity = refreshTokenRepository
-                .findByTokenAndRevokedFalse(refreshTokenString)
+        RefreshToken entity = refreshTokenRepository.findByTokenAndRevokedFalse(refreshTokenString)
                 .orElseThrow(() -> new BadRequestException("유효하지 않은 리프레시 토큰입니다"));
 
         if (entity.getExpiresAt().isBefore(Instant.now())) {
@@ -298,19 +237,13 @@ public class UserService {
             throw new BadRequestException("만료된 리프레시 토큰입니다");
         }
 
-        Claims claims = parsedRefreshToken.getBody();
-        Long userId = Long.valueOf(claims.getSubject());
-        User user = userRepository.findById(userId.intValue())
-                .orElseThrow(() -> new BadRequestException("사용자를 찾을 수 없습니다"));
+        Claims claims = jwtProvider.parse(refreshTokenString).getBody();
+        User user = findUserById(Long.valueOf(claims.getSubject()).intValue());
 
-        // refresh token은 유지하고 access token만 새로 발급
         String newAccessToken = jwtProvider.createAccessToken(user.getId().longValue(), JwtProvider.ROLE_USER);
-
-        // access token 쿠키만 갱신
         addTokenCookie(response, Constants.Cookie.ACCESS_TOKEN, newAccessToken, (int) jwtProperties.getAccessTokenTtlSeconds());
 
-        TokenResponseDto tokenResponse = new TokenResponseDto(newAccessToken, refreshTokenString);
-        return ApiResponse.modified(tokenResponse);
+        return ApiResponse.modified(new TokenResponseDto(newAccessToken, refreshTokenString));
     }
 
     /** Access, Refresh 토큰을 새로 발급하고 DB에 저장 */
@@ -349,7 +282,57 @@ public class UserService {
         return passwordEncoder.matches(rawPassword, user.getPassword());
     }
 
-    /** 쿠키에서 refresh token 추출 */
+    /** 활성 사용자 조회 */
+    private User findUserById(Integer id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다"));
+    }
+
+    /** 이메일 중복 검사 (삭제 대기 중인 계정도 포함) */
+    private void validateEmailNotExists(String email) {
+        if (userRepository.findByEmailIncludingDeleted(email).isPresent()) {
+            throw new ConflictException("이미 사용 중인 이메일입니다");
+        }
+    }
+
+    /** 닉네임 중복 검사 (삭제 대기 중인 계정도 포함) */
+    private void validateNicknameNotExists(String nickname) {
+        if (userRepository.countByNicknameIncludingDeleted(nickname) > 0) {
+            throw new ConflictException("이미 사용 중인 닉네임입니다");
+        }
+    }
+
+    /** 프로필 이미지 처리: 파일 업로드 또는 기존 objectKey 검증 후 설정 */
+    private void handleProfileImage(User user, MultipartFile profileImage, String profileImageKey) {
+        if (profileImage != null && !profileImage.isEmpty()) {
+            var uploadResponse = imageUploadService.uploadMultipart(ImageType.PROFILE, user.getId(), profileImage);
+            user.updateProfileImageKey(uploadResponse.objectKey());
+            userRepository.save(user);
+        } else if (profileImageKey != null && !profileImageKey.trim().isEmpty()) {
+            String trimmedKey = profileImageKey.trim();
+            imageUploadService.validateObjectKey(ImageType.PROFILE, trimmedKey, user.getId());
+            user.updateProfileImageKey(trimmedKey);
+            userRepository.save(user);
+        }
+    }
+
+    /** 닉네임 업데이트: 동일 시 중복검사 생략 */
+    private void updateNickname(User user, String newNickname, Integer id) {
+        if (!newNickname.equals(user.getNickname()) && userRepository.existsByNicknameAndIdNot(newNickname, id)) {
+            throw new ConflictException("이미 사용 중인 닉네임입니다");
+        }
+        user.updateNickname(newNickname);
+    }
+
+    /** 프로필 이미지 키 업데이트: 빈문자→null 처리 */
+    private void updateProfileImageKey(User user, String profileImageKey, Integer id) {
+        String finalKey = profileImageKey.isEmpty() ? null : profileImageKey;
+        if (finalKey != null) {
+            imageUploadService.validateObjectKey(ImageType.PROFILE, finalKey, id);
+        }
+        user.updateProfileImageKey(finalKey);
+    }
+
     private java.util.Optional<String> extractRefreshTokenFromCookie(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
         if (cookies == null) {
