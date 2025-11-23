@@ -4,8 +4,7 @@ package com.kakaotechbootcamp.community.dto.image;
  * 이미지 업로드 응답 DTO
  * - 의도: 업로드 결과 및 접근 가능한 URL 반환
  * - 사용처: ImageUploadController 응답, UserReferenceDto(프로필 응답)
- * - 현재: url은 로컬 정적 경로(/files/**)
- * - TODO(s3): presigned/public URL을 생성하여 반환
+ * - url: S3 Public URL (https://bucket.s3.region.amazonaws.com/objectKey)
  */
 public record ImageUploadResponseDto(
         /**

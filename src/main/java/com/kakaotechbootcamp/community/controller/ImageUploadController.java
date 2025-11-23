@@ -7,6 +7,7 @@ import com.kakaotechbootcamp.community.dto.image.ImageUploadRequestDto;
 import com.kakaotechbootcamp.community.dto.image.ImageUploadResponseDto;
 import com.kakaotechbootcamp.community.dto.image.PresignedUrlRequestDto;
 import com.kakaotechbootcamp.community.dto.image.PresignedUrlResponseDto;
+import com.kakaotechbootcamp.community.common.ImageType;
 import com.kakaotechbootcamp.community.service.ImageUploadService;
 import com.kakaotechbootcamp.community.service.S3Service;
 import jakarta.validation.Valid;
@@ -40,7 +41,7 @@ public class ImageUploadController {
      */
     @PostMapping("/upload")
     public ResponseEntity<ApiResponse<ImageUploadResponseDto>> uploadImage(
-            @RequestParam("imageType") com.kakaotechbootcamp.community.common.ImageType imageType,
+            @RequestParam("imageType") ImageType imageType,
             @RequestParam("resourceId") Integer resourceId,
             @RequestPart("file") MultipartFile file
     ) {

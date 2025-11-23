@@ -7,6 +7,7 @@ import com.kakaotechbootcamp.community.common.ImageProperties;
 import com.kakaotechbootcamp.community.exception.BadRequestException;
 import com.kakaotechbootcamp.community.repository.PostRepository;
 import com.kakaotechbootcamp.community.repository.UserRepository;
+import com.kakaotechbootcamp.community.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +32,7 @@ public class ImageUploadService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final ImageProperties imageProperties;
+    private final S3Service s3Service;
 
     /**
      * 이미지 업로드 검증 및 경로 생성
@@ -65,8 +67,7 @@ public class ImageUploadService {
             finalObjectKey = generateObjectKey(imageType, resourceId, filename);
         }
 
-        // TODO(s3): S3 도입 시 objectKey로부터 public/presigned URL 생성 로직 교체
-        // 응답 생성 (현재는 로컬 정적 매핑 URL)
+        // S3 Public URL 생성
         String url = generateImageUrl(finalObjectKey);
         
         return ImageUploadResponseDto.of(finalObjectKey, url);
@@ -212,14 +213,10 @@ public class ImageUploadService {
 
     /**
      * 이미지 URL 생성
-     * - 의도: objectKey를 기반으로 접근 가능한 URL 생성
-     * - 현재: 임시 경로 반환 (/images/{objectKey})
-     * - 추후: S3 설정에 따라 presigned URL 또는 public URL 반환
+     * - 의도: objectKey를 기반으로 접근 가능한 S3 Public URL 생성
      */
     private String generateImageUrl(String objectKey) {
-        // 로컬 정적 매핑: StaticResourceConfig에서 /files/** → uploads/** 매핑
-        // TODO(s3): S3로 전환 시 presigned URL 생성기로 교체
-        return "/files/" + objectKey;
+        return s3Service.generatePublicUrl(objectKey);
     }
 
     /**
@@ -247,10 +244,11 @@ public class ImageUploadService {
         String objectKey = generateObjectKey(imageType, resourceId, uniqueName);
 
         // 로컬 저장
-        // TODO(s3): S3로 전환 시 storeFileLocal → S3Uploader.upload 로 교체
+        // Presigned URL 방식은 Frontend에서 직접 S3로 업로드하므로 이 메서드는 유지
         storeFileLocal(objectKey, file);
 
-        String url = generateImageUrl(objectKey); // 현재 로컬 URL
+        // S3 Public URL 생성
+        String url = generateImageUrl(objectKey);
         return ImageUploadResponseDto.of(objectKey, url);
     }
 
@@ -288,5 +286,3 @@ public class ImageUploadService {
         }
     }
 }
-
-
