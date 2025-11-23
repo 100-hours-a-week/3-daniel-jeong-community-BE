@@ -17,6 +17,10 @@ public class ApiResponse<T> {
         return new ApiResponse<>(true, HttpStatus.OK.value(), ApiMessage.SUCCESS.getMessage(), null);
     }
 
+    public static <T> ApiResponse<T> success(T data) {
+        return new ApiResponse<>(true, HttpStatus.OK.value(), ApiMessage.SUCCESS.getMessage(), data);
+    }
+
     public static <T> ApiResponse<T> created(T data) {
         return new ApiResponse<>(true, HttpStatus.CREATED.value(), ApiMessage.CREATED.getMessage(), data);
     }

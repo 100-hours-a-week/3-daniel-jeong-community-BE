@@ -2,9 +2,13 @@ package com.kakaotechbootcamp.community.controller;
 
 import com.kakaotechbootcamp.community.common.ApiResponse;
 import com.kakaotechbootcamp.community.common.ImageProperties;
+import com.kakaotechbootcamp.community.config.S3Properties;
 import com.kakaotechbootcamp.community.dto.image.ImageUploadRequestDto;
 import com.kakaotechbootcamp.community.dto.image.ImageUploadResponseDto;
+import com.kakaotechbootcamp.community.dto.image.PresignedUrlRequestDto;
+import com.kakaotechbootcamp.community.dto.image.PresignedUrlResponseDto;
 import com.kakaotechbootcamp.community.service.ImageUploadService;
+import com.kakaotechbootcamp.community.service.S3Service;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +30,8 @@ public class ImageUploadController {
 
     private final ImageUploadService imageUploadService;
     private final ImageProperties imageProperties;
+    private final S3Service s3Service;
+    private final S3Properties s3Properties;
 
     /**
      * 이미지 업로드 (Multipart)
@@ -54,9 +60,52 @@ public class ImageUploadController {
     }
 
     /**
+     * Presigned URL 생성 API
+     * - 의도: Frontend에서 S3에 직접 업로드하기 위한 Presigned URL 발급
+     * - 요청: { imageType, resourceId, filename, contentType }
+     * - 응답: { presignedUrl, objectKey, expiresIn }
+     */
+    @PostMapping("/presigned-url")
+    public ResponseEntity<ApiResponse<PresignedUrlResponseDto>> generatePresignedUrl(
+            @Valid @RequestBody PresignedUrlRequestDto request
+    ) {
+        // 파일명 검증
+        String filename = request.filename();
+        if (filename == null || filename.isBlank()) {
+            throw new BadRequestException("파일명이 필요합니다");
+        }
+        
+        // 확장자 검증
+        String extension = imageProperties.extractExtensionFromContentType(request.contentType());
+        if (extension == null || !imageProperties.getAllowedExtensionSet().contains(extension)) {
+            throw new BadRequestException("지원하지 않는 이미지 확장자입니다: " + request.contentType());
+        }
+        
+        // 리소스 존재 검증
+        imageUploadService.validateResourceExists(request.imageType(), request.resourceId());
+        
+        // objectKey 생성
+        String objectKey = imageUploadService.generateObjectKey(
+                request.imageType(),
+                request.resourceId(),
+                filename
+        );
+        
+        // Presigned URL 생성
+        String presignedUrl = s3Service.generatePresignedUrl(objectKey, request.contentType());
+        
+        PresignedUrlResponseDto response = PresignedUrlResponseDto.of(
+                presignedUrl,
+                objectKey,
+                s3Properties.getPresignedUrlExpirationMinutes() * 60
+        );
+        
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
      * 이미지 업로드 (JSON - objectKey/filename)
      * - 의도: 외부 스토리지(S3 등)에 업로드 후 경로 정보만 전달하는 케이스
-     * - TODO(s3): presigned 업로드 도입 시 S3 전용 컴포넌트로 검증/URL 생성을 위임
      */
     @PostMapping("/upload-object-key")
     public ResponseEntity<ApiResponse<ImageUploadResponseDto>> uploadImageJson(

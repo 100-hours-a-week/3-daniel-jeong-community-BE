@@ -78,7 +78,7 @@ public class ImageUploadService {
      * - PROFILE: imageProperties.getProfilePathFormat()
      * - POST: imageProperties.getPostPathFormat()
      */
-    private String generateObjectKey(ImageType imageType, Integer resourceId, String filename) {
+    public String generateObjectKey(ImageType imageType, Integer resourceId, String filename) {
         String safeFilename = sanitizeFilename(filename);
         if (imageType == ImageType.PROFILE) {
             String format = imageProperties.getProfilePathFormat();
@@ -192,7 +192,7 @@ public class ImageUploadService {
      *   - POST: postId 존재 확인
      * - 예외: 리소스 미존재 시 NotFoundException
      */
-    private void validateResourceExists(ImageType imageType, Integer resourceId) {
+    public void validateResourceExists(ImageType imageType, Integer resourceId) {
         if (imageType == ImageType.PROFILE) {
             if (resourceId == null) {
                 throw new BadRequestException("프로필 이미지 검증 시 userId는 필수입니다");
