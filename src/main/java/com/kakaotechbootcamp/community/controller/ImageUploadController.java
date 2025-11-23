@@ -53,7 +53,7 @@ public class ImageUploadController {
             throw new BadRequestException("이미지 최대 크기" + imageProperties.getMaxSizeBytes() + "바이트를 초과했습니다");
         }
         if (!imageProperties.isAllowedContentType(file.getContentType())) {
-            throw new BadRequestException("지원하지 않는 이미지 확장자입니다: " + file.getContentType());
+            throw new BadRequestException("지원하지 않는 이미지 형식입니다. (" + imageProperties.getAllowedExtensionsAsString() + "만 가능)");
         }
 
         ImageUploadResponseDto response = imageUploadService.uploadMultipart(imageType, resourceId, file);
@@ -79,7 +79,7 @@ public class ImageUploadController {
         // 확장자 검증
         String extension = imageProperties.extractExtensionFromContentType(request.contentType());
         if (extension == null || !imageProperties.getAllowedExtensionSet().contains(extension)) {
-            throw new BadRequestException("지원하지 않는 이미지 확장자입니다: " + request.contentType());
+            throw new BadRequestException("지원하지 않는 이미지 형식입니다. (" + imageProperties.getAllowedExtensionsAsString() + "만 가능)");
         }
         
         // 리소스 존재 검증

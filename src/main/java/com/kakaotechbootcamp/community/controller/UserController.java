@@ -60,10 +60,11 @@ public class UserController {
         // 프로필 이미지 파일 검증 (있는 경우)
         if (profileImage != null && !profileImage.isEmpty()) {
             if (profileImage.getSize() > imageProperties.getMaxSizeBytes()) {
-                throw new BadRequestException("이미지 최대 크기" + imageProperties.getMaxSizeBytes() + "바이트를 초과했습니다");
+                long maxSizeMB = imageProperties.getMaxSizeBytes() / (1024 * 1024);
+                throw new BadRequestException("파일 크기는 " + maxSizeMB + "MB 이하여야 합니다.");
             }
             if (!imageProperties.isAllowedContentType(profileImage.getContentType())) {
-                throw new BadRequestException("지원하지 않는 이미지 확장자입니다: " + profileImage.getContentType());
+                throw new BadRequestException("지원하지 않는 이미지 형식입니다. (" + imageProperties.getAllowedExtensionsAsString() + "만 가능)");
             }
         }
         

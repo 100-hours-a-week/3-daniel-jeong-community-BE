@@ -150,11 +150,12 @@ public class ImageUploadService {
         }
         int dot = filename.lastIndexOf('.');
         if (dot < 0 || dot + 1 >= filename.length()) {
-            throw new BadRequestException("이미지 확장자가 필요합니다 (.jpeg/.jpg/.png/.gif/.webp)");
+            String allowedExtensions = imageProperties.getAllowedExtensionsAsString();
+            throw new BadRequestException("이미지 확장자가 필요합니다 (." + allowedExtensions.replace(", ", "/.") + ")");
         }
         String ext = filename.substring(dot + 1).toLowerCase();
         if (!imageProperties.getAllowedExtensionSet().contains(ext)) {
-            throw new BadRequestException("지원하지 않는 이미지 확장자입니다: " + ext);
+            throw new BadRequestException("지원하지 않는 이미지 확장자입니다: " + ext + " (" + imageProperties.getAllowedExtensionsAsString() + "만 가능)");
         }
     }
 

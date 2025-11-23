@@ -56,4 +56,12 @@ public class ImageProperties {
         String extension = extractExtensionFromContentType(contentType);
         return extension != null && getAllowedExtensionSet().contains(extension);
     }
+    
+    // 허용된 확장자 목록을 문자열로 반환 (에러 메시지용)
+    public String getAllowedExtensionsAsString() {
+        if (allowedExtensions == null || allowedExtensions.isEmpty()) {
+            return "";
+        }
+        return String.join(", ", allowedExtensions);
+    }
 }
