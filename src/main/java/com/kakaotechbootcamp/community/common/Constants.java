@@ -32,6 +32,7 @@ public final class Constants {
         public static final String AUTH = "/api/auth";
         public static final String USERS = "/api/users";
         public static final String POSTS = "/api/posts";
+        public static final String IMAGES = "/api/images";
         private ApiPath() {}
     }
     public static final class PagePath {

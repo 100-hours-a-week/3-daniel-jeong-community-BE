@@ -115,7 +115,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (path.contains(".") && 
             !path.startsWith(Constants.ApiPath.AUTH) &&
             !path.startsWith(Constants.ApiPath.USERS) &&
-            !path.startsWith(Constants.ApiPath.POSTS)) {
+            !path.startsWith(Constants.ApiPath.POSTS) &&
+            !path.startsWith(Constants.ApiPath.IMAGES)) {
             return true;
         }
         
