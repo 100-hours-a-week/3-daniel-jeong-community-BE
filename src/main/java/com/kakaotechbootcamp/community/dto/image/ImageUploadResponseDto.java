@@ -15,7 +15,7 @@ public record ImageUploadResponseDto(
         
         /**
          * 접근 가능한 이미지 URL (nullable)
-         * - 업로드 API: 현재는 /files/**
+         * - 업로드 API: S3 Public URL
          * - 프로필 응답: null 허용 (objectKey만 사용)
          */
         String url

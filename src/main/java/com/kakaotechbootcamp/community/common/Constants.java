@@ -42,9 +42,7 @@ public final class Constants {
         private PagePath() {}
     }
     public static final class StaticPath {
-        public static final String FILES = "/files/";
         public static final String WEBJARS = "/webjars/";
-        public static final String STATIC = "/static/";
         private StaticPath() {}
     }
     public static final class Header {

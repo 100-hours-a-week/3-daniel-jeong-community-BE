@@ -7,23 +7,16 @@ import com.kakaotechbootcamp.community.common.ImageProperties;
 import com.kakaotechbootcamp.community.exception.BadRequestException;
 import com.kakaotechbootcamp.community.repository.PostRepository;
 import com.kakaotechbootcamp.community.repository.UserRepository;
-import com.kakaotechbootcamp.community.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.UUID;
 
 /**
  * 이미지 업로드 공통 서비스
  * - 의도: 프로필/게시글 이미지 타입별 처리 및 검증 (경로 생성/검증)
- * - 기능:
- *   1. 이미지 업로드: 경로 생성/검증 및 응답 반환
- *   2. objectKey 검증: 외부 서비스에서 받은 objectKey 검증
  */
 @Service
 @RequiredArgsConstructor
@@ -37,13 +30,6 @@ public class ImageUploadService {
     /**
      * 이미지 업로드 검증 및 경로 생성
      * - 의도: 타입별 리소스 존재 확인 후 objectKey 생성/검증
-     * - 파라미터: imageType, objectKey(전체 경로 또는 null), filename(objectKey 없을 때), resourceId
-     * - 반환: ImageUploadResponseDto(objectKey, url)
-     * - 동작:
-     *   1. 리소스 존재 검증 (userId/postId)
-     *   2. objectKey 제공 시: 경로 규칙 검증
-     *   3. filename 제공 시: 경로 자동 생성 (user/{userId}/profile/{filename} 또는 post/{postId}/images/{filename})
-     *   4. 응답 반환 (objectKey, url)
      */
     @Transactional(readOnly = true)
     public ImageUploadResponseDto uploadImage(ImageType imageType, String objectKey, String filename, Integer resourceId) {
@@ -76,8 +62,6 @@ public class ImageUploadService {
     /**
      * 타입별 objectKey 경로 생성
      * - 의도: filename과 resourceId로 규칙에 맞는 경로 자동 생성
-     * - PROFILE: imageProperties.getProfilePathFormat()
-     * - POST: imageProperties.getPostPathFormat()
      */
     public String generateObjectKey(ImageType imageType, Integer resourceId, String filename) {
         String safeFilename = sanitizeFilename(filename);
@@ -100,10 +84,6 @@ public class ImageUploadService {
     /**
      * objectKey 경로 규칙 검증
      * - 의도: 제공된 objectKey가 타입별 경로 규칙을 따르는지 검증
-     * - 규칙:
-     *   - PROFILE: user/{userId}/profile/ 로 시작해야 함
-     *   - POST: post/{postId}/images/ 로 시작해야 함
-     * - 예외: 규칙 위반 시 IllegalArgumentException
      */
     private void validateObjectKeyPath(ImageType imageType, String objectKey, Integer resourceId) {
         String expectedPrefix;
@@ -129,7 +109,6 @@ public class ImageUploadService {
     /**
      * filename 정리 (경로 분리자, 특수문자 제거)
      * - 의도: 보안을 위해 경로 분리자 및 위험한 문자 제거
-     * - 처리: /, \, 선행 점(.) 제거 후 trim
      */
     private String sanitizeFilename(String filename) {
         // 경로 분리자 제거 및 기본 정리
@@ -141,11 +120,6 @@ public class ImageUploadService {
     /**
      * objectKey 경로 규칙 검증 (외부 서비스용)
      * - 의도: PostService, UserService에서 받은 objectKey 검증
-     * - 파라미터: imageType, objectKey, resourceId
-     * - 동작:
-     *   1. objectKey가 null/빈 값이면 통과 (이미지 없음 허용)
-     *   2. 리소스 존재 검증 (userId/postId)
-     *   3. 경로 규칙 검증 (타입별 prefix 확인)
      */
     @Transactional(readOnly = true)
     public void validateObjectKey(ImageType imageType, String objectKey, Integer resourceId) {
@@ -163,7 +137,6 @@ public class ImageUploadService {
     /**
      * 확장자 검증
      * - 의도: 허용된 이미지 확장자만 통과
-     * - 검사 대상: 파일명 혹은 objectKey의 마지막 세그먼트
      */
     private void validateExtension(String nameOrPath) {
         if (nameOrPath == null || nameOrPath.isBlank()) {
@@ -188,10 +161,6 @@ public class ImageUploadService {
     /**
      * 리소스 존재 검증 (공통)
      * - 의도: 타입별 리소스(userId/postId) 존재 확인
-     * - 동작:
-     *   - PROFILE: userId 존재 확인
-     *   - POST: postId 존재 확인
-     * - 예외: 리소스 미존재 시 NotFoundException
      */
     public void validateResourceExists(ImageType imageType, Integer resourceId) {
         if (imageType == ImageType.PROFILE) {
@@ -222,7 +191,6 @@ public class ImageUploadService {
     /**
      * Multipart 업로드 처리
      * - 의도: 서버가 파일을 직접 받아 정책 검증 후 objectKey 생성
-     * - 제약: 파일 크기 ≤ 10MB, 확장자 화이트리스트
      */
     public ImageUploadResponseDto uploadMultipart(ImageType imageType, Integer resourceId, MultipartFile file) {
         // 리소스 존재 검증
@@ -243,9 +211,24 @@ public class ImageUploadService {
         // objectKey 생성
         String objectKey = generateObjectKey(imageType, resourceId, uniqueName);
 
-        // 로컬 저장
-        // Presigned URL 방식은 Frontend에서 직접 S3로 업로드하므로 이 메서드는 유지
-        storeFileLocal(objectKey, file);
+        // S3에 직접 업로드
+        try {
+            String contentType = file.getContentType();
+            if (contentType == null || contentType.isBlank()) {
+                // Content-Type이 없으면 확장자로 추론
+                String ext = originalName.substring(originalName.lastIndexOf('.') + 1).toLowerCase();
+                contentType = switch (ext) {
+                    case "jpg", "jpeg" -> "image/jpeg";
+                    case "png" -> "image/png";
+                    case "gif" -> "image/gif";
+                    case "webp" -> "image/webp";
+                    default -> "application/octet-stream";
+                };
+            }
+            s3Service.uploadFile(objectKey, contentType, file.getInputStream(), file.getSize());
+        } catch (IOException e) {
+            throw new BadRequestException("이미지 업로드 중 오류가 발생했습니다: " + e.getMessage());
+        }
 
         // S3 Public URL 생성
         String url = generateImageUrl(objectKey);
@@ -268,21 +251,4 @@ public class ImageUploadService {
         return ext.isEmpty() ? (base + "_" + uuid) : (base + "_" + uuid + "." + ext);
     }
 
-    /**
-     * 로컬 저장: 프로젝트 루트의 uploads 디렉토리 하위에 objectKey 경로로 저장
-     */
-    private void storeFileLocal(String objectKey, MultipartFile file) {
-        try {
-            String configured = imageProperties.getBaseDir();
-            Path baseDir = Paths.get((configured == null || configured.isBlank()) ? "uploads" : configured).toAbsolutePath().normalize();
-            Path target = baseDir.resolve(objectKey).toAbsolutePath().normalize();
-            if (!target.startsWith(baseDir)) {
-                throw new BadRequestException("잘못된 파일 경로입니다");
-            }
-            Files.createDirectories(target.getParent());
-            file.transferTo(target.toFile());
-        } catch (IOException e) {
-            throw new BadRequestException("이미지 저장 중 오류가 발생했습니다");
-        }
-    }
 }

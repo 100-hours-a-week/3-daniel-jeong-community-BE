@@ -99,13 +99,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     /**
      * 정적 리소스 여부 확인
-     * - 경로 기반: /files/, /webjars/
+     * - 경로 기반: /webjars/
      * - resources/static 하위 리소스: 실제 파일 존재 여부로 확인
      */
     private boolean isStaticResource(String path) {
         // 경로 기반 체크
-        if (path.startsWith(Constants.StaticPath.FILES) || 
-            path.startsWith(Constants.StaticPath.WEBJARS)) {
+        if (path.startsWith(Constants.StaticPath.WEBJARS)) {
             return true;
         }
         
