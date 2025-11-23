@@ -20,7 +20,7 @@ import com.kakaotechbootcamp.community.exception.BadRequestException;
  *   - Service: 리소스 존재, 경로 규칙(ImageType prefix), 저장 및 URL 생성
  */
 @RestController
-@RequestMapping("/images")
+@RequestMapping("/api/images")
 @RequiredArgsConstructor
 public class ImageUploadController {
 

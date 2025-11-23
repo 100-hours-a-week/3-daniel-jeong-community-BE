@@ -15,7 +15,7 @@ import java.util.Map;
  * - 경로: /posts/{postId}/likes
  */
 @RestController
-@RequestMapping("/posts/{postId}/likes")
+@RequestMapping("/api/posts/{postId}/likes")
 @RequiredArgsConstructor
 public class PostLikeController {
 

@@ -29,9 +29,9 @@ public final class Constants {
         private HttpMethod() {}
     }
     public static final class ApiPath {
-        public static final String AUTH = "/auth";
-        public static final String USERS = "/users";
-        public static final String POSTS = "/posts";
+        public static final String AUTH = "/api/auth";
+        public static final String USERS = "/api/users";
+        public static final String POSTS = "/api/posts";
         private ApiPath() {}
     }
     public static final class PagePath {
@@ -58,10 +58,10 @@ public final class Constants {
         private ContentType() {}
     }
     public static final class ExcludePath {
-        public static final String AUTH_REFRESH = "/auth/refresh";
-        public static final String AUTH_PASSWORD_RESET = "/auth/password-reset";
-        public static final String USERS_CHECK_EMAIL = "/users/check-email";
-        public static final String USERS_CHECK_NICKNAME = "/users/check-nickname";
+        public static final String AUTH_REFRESH = "/api/auth/refresh";
+        public static final String AUTH_PASSWORD_RESET = "/api/auth/password-reset";
+        public static final String USERS_CHECK_EMAIL = "/api/users/check-email";
+        public static final String USERS_CHECK_NICKNAME = "/api/users/check-nickname";
         public static final String ERROR = "/error";
         public static final String TERMS = "/terms";
         public static final String PRIVACY = "/privacy";

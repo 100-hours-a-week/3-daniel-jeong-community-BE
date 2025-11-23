@@ -20,7 +20,7 @@ import java.util.Map;
  * @RequestMapping: 기본 경로 /users
  */
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
