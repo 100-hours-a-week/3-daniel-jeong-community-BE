@@ -16,9 +16,10 @@ spring:
 
 logging:
   level:
-    org.hibernate.SQL: debug
-    root: debug
-    
+    root: info
+    org.springframework: warn
+    org.hibernate: warn
+
 # 이미지 정책 설정
 image:
   max-size-bytes: 5242880         # 5MB
@@ -37,10 +38,3 @@ email:
   password-reset:
     min-interval-ms: 60000  # 비밀번호 재설정 인증번호 발송 최소 간격 (밀리초)
     code-expiration-minutes: 10  # 인증번호 유효 시간 (분)
-
-# AWS S3 설정
-aws:
-  s3:
-    bucket-name: community-images-857597738766
-    region: ap-northeast-2
-    presigned-url-expiration-minutes: 5
