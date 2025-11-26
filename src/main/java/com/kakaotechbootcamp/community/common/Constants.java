@@ -61,6 +61,8 @@ public final class Constants {
         public static final String AUTH_PASSWORD_RESET = "/api/auth/password-reset";
         public static final String USERS_CHECK_EMAIL = "/api/users/check-email";
         public static final String USERS_CHECK_NICKNAME = "/api/users/check-nickname";
+        public static final String IMAGES_PRESIGNED_URL = "/api/images/presigned-url";
+        public static final String IMAGES_PUBLIC_URL = "/api/images/public-url";
         public static final String ERROR = "/error";
         public static final String POLICY = "/policy";
         
@@ -70,6 +72,8 @@ public final class Constants {
             AUTH_PASSWORD_RESET,
             USERS_CHECK_EMAIL,
             USERS_CHECK_NICKNAME,
+            IMAGES_PRESIGNED_URL,
+            IMAGES_PUBLIC_URL,
             ERROR,
             POLICY
         );
