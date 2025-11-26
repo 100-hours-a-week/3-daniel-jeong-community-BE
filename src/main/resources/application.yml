@@ -9,11 +9,6 @@ spring:
       hibernate:
         format_sql: true
 
-  servlet:
-    multipart:
-      max-file-size: 5MB       # 파일 1개 최대 5MB
-      max-request-size: 50MB   # 한 요청 최대(최대 10개 업로드, 총 50MB)
-
 logging:
   level:
     root: info
