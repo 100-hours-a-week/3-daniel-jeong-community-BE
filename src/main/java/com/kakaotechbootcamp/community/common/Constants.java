@@ -62,8 +62,7 @@ public final class Constants {
         public static final String USERS_CHECK_EMAIL = "/api/users/check-email";
         public static final String USERS_CHECK_NICKNAME = "/api/users/check-nickname";
         public static final String ERROR = "/error";
-        public static final String TERMS = "/terms";
-        public static final String PRIVACY = "/privacy";
+        public static final String POLICY = "/policy";
         
         // 필터 제외 경로 목록
         public static final java.util.List<String> FILTER_EXCLUDED = java.util.List.of(
@@ -72,8 +71,7 @@ public final class Constants {
             USERS_CHECK_EMAIL,
             USERS_CHECK_NICKNAME,
             ERROR,
-            TERMS,
-            PRIVACY
+            POLICY
         );
         
         private ExcludePath() {}
