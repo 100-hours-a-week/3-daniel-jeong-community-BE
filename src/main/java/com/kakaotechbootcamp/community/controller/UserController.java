@@ -6,6 +6,7 @@ import com.kakaotechbootcamp.community.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Map;
@@ -46,13 +47,14 @@ public class UserController {
     /**
      * 회원가입
      * - 의도: 유효성 검증(@Valid) 후 사용자 생성
-     * - 요청: JSON (profileImageKey는 Presigned URL로 업로드 후 전달)
+     * - 요청: multipart/form-data (백엔드에서 직접 업로드)
      */
     @PostMapping
     public ResponseEntity<ApiResponse<UserResponseDto>> create(
-            @Valid @RequestBody UserCreateRequestDto request
+            @Valid @RequestPart("userData") UserCreateRequestDto request,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage
     ) {
-        ApiResponse<UserResponseDto> response = userService.create(request);
+        ApiResponse<UserResponseDto> response = userService.create(request, profileImage);
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
 
