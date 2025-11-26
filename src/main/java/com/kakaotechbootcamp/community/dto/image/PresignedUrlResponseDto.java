@@ -4,9 +4,10 @@ package com.kakaotechbootcamp.community.dto.image;
 public record PresignedUrlResponseDto(
         String presignedUrl,
         String objectKey,
+        String publicUrl,
         int expiresIn
 ) {
-    public static PresignedUrlResponseDto of(String presignedUrl, String objectKey, int expiresIn) {
-        return new PresignedUrlResponseDto(presignedUrl, objectKey, expiresIn);
+    public static PresignedUrlResponseDto of(String presignedUrl, String objectKey, String publicUrl, int expiresIn) {
+        return new PresignedUrlResponseDto(presignedUrl, objectKey, publicUrl, expiresIn);
     }
 }

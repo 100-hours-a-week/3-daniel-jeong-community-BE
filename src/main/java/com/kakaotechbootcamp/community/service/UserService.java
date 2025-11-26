@@ -19,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.Map;
@@ -46,11 +45,11 @@ public class UserService {
     /**
      * 회원가입
      * - 의도: 이메일/닉네임 중복 검사 후 사용자 생성
-     * - 로직: 프로필 이미지 파일이 있으면 업로드 후 profileImageKey 설정, 기존 objectKey 제공 시 검증 후 설정
+     * - 로직: profileImageKey가 제공되면 검증 후 설정 (Presigned URL로 업로드된 objectKey)
      * - 에러: 중복 시 409(Conflict)
      */
     @Transactional
-    public ApiResponse<UserResponseDto> create(UserCreateRequestDto request, MultipartFile profileImage) {
+    public ApiResponse<UserResponseDto> create(UserCreateRequestDto request) {
         String email = request.getEmail().trim().toLowerCase();
         String nickname = request.getNickname().trim();
 
@@ -60,7 +59,13 @@ public class UserService {
         User user = new User(email, passwordEncoder.encode(request.getPassword()), nickname);
         User saved = userRepository.save(user);
 
-        handleProfileImage(saved, profileImage, request.getProfileImageKey());
+        // 프로필 이미지 objectKey 검증 및 설정 (Presigned URL로 업로드된 경우)
+        if (request.getProfileImageKey() != null && !request.getProfileImageKey().trim().isEmpty()) {
+            String trimmedKey = request.getProfileImageKey().trim();
+            imageUploadService.validateObjectKey(ImageType.PROFILE, trimmedKey, saved.getId());
+            saved.updateProfileImageKey(trimmedKey);
+            userRepository.save(saved);
+        }
 
         return ApiResponse.created(UserResponseDto.from(saved));
     }
@@ -302,19 +307,6 @@ public class UserService {
         }
     }
 
-    /** 프로필 이미지 처리: 파일 업로드 또는 기존 objectKey 검증 후 설정 */
-    private void handleProfileImage(User user, MultipartFile profileImage, String profileImageKey) {
-        if (profileImage != null && !profileImage.isEmpty()) {
-            var uploadResponse = imageUploadService.uploadMultipart(ImageType.PROFILE, user.getId(), profileImage);
-            user.updateProfileImageKey(uploadResponse.objectKey());
-            userRepository.save(user);
-        } else if (profileImageKey != null && !profileImageKey.trim().isEmpty()) {
-            String trimmedKey = profileImageKey.trim();
-            imageUploadService.validateObjectKey(ImageType.PROFILE, trimmedKey, user.getId());
-            user.updateProfileImageKey(trimmedKey);
-            userRepository.save(user);
-        }
-    }
 
     /** 닉네임 업데이트: 동일 시 중복검사 생략 */
     private void updateNickname(User user, String newNickname, Integer id) {

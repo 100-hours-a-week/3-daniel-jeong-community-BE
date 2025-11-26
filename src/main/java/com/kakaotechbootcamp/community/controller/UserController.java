@@ -1,14 +1,11 @@
 package com.kakaotechbootcamp.community.controller;
 
 import com.kakaotechbootcamp.community.common.ApiResponse;
-import com.kakaotechbootcamp.community.common.ImageProperties;
 import com.kakaotechbootcamp.community.dto.user.*;
-import com.kakaotechbootcamp.community.exception.BadRequestException;
 import com.kakaotechbootcamp.community.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 
 import java.util.Map;
@@ -25,7 +22,6 @@ import java.util.Map;
 public class UserController {
 
 	private final UserService userService;
-	private final ImageProperties imageProperties;
 
     /**
      * 이메일 중복 체크
@@ -50,25 +46,13 @@ public class UserController {
     /**
      * 회원가입
      * - 의도: 유효성 검증(@Valid) 후 사용자 생성
-     * - 요청: multipart/form-data (userData: JSON, profileImage: 파일, 선택사항)
+     * - 요청: JSON (profileImageKey는 Presigned URL로 업로드 후 전달)
      */
     @PostMapping
     public ResponseEntity<ApiResponse<UserResponseDto>> create(
-            @RequestPart("userData") @Valid UserCreateRequestDto request,
-            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage
+            @Valid @RequestBody UserCreateRequestDto request
     ) {
-        // 프로필 이미지 파일 검증 (있는 경우)
-        if (profileImage != null && !profileImage.isEmpty()) {
-            if (profileImage.getSize() > imageProperties.getMaxSizeBytes()) {
-                long maxSizeMB = imageProperties.getMaxSizeBytes() / (1024 * 1024);
-                throw new BadRequestException("파일 크기는 " + maxSizeMB + "MB 이하여야 합니다.");
-            }
-            if (!imageProperties.isAllowedContentType(profileImage.getContentType())) {
-                throw new BadRequestException("지원하지 않는 이미지 형식입니다. (" + imageProperties.getAllowedExtensionsAsString() + "만 가능)");
-            }
-        }
-        
-        ApiResponse<UserResponseDto> response = userService.create(request, profileImage);
+        ApiResponse<UserResponseDto> response = userService.create(request);
 		return ResponseEntity.status(response.getStatus()).body(response);
 	}
 
