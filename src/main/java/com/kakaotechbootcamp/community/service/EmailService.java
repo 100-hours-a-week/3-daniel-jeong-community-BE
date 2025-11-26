@@ -61,8 +61,9 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             
+            helper.setFrom("no-reply@swimwaymakers.site", "Swimwaymakers");
             helper.setTo(email);
-            helper.setSubject("[아무말대잔치] 비밀번호 재설정 인증번호 안내");
+            helper.setSubject("[S.W.M] 비밀번호 재설정 인증번호 안내");
             
             Context context = new Context();
             context.setVariable("code", code);
