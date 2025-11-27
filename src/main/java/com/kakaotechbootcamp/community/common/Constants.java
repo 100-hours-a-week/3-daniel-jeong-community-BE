@@ -29,9 +29,10 @@ public final class Constants {
         private HttpMethod() {}
     }
     public static final class ApiPath {
-        public static final String AUTH = "/auth";
-        public static final String USERS = "/users";
-        public static final String POSTS = "/posts";
+        public static final String AUTH = "/api/auth";
+        public static final String USERS = "/api/users";
+        public static final String POSTS = "/api/posts";
+        public static final String IMAGES = "/api/images";
         private ApiPath() {}
     }
     public static final class PagePath {
@@ -41,9 +42,7 @@ public final class Constants {
         private PagePath() {}
     }
     public static final class StaticPath {
-        public static final String FILES = "/files/";
         public static final String WEBJARS = "/webjars/";
-        public static final String STATIC = "/static/";
         private StaticPath() {}
     }
     public static final class Header {
@@ -58,13 +57,14 @@ public final class Constants {
         private ContentType() {}
     }
     public static final class ExcludePath {
-        public static final String AUTH_REFRESH = "/auth/refresh";
-        public static final String AUTH_PASSWORD_RESET = "/auth/password-reset";
-        public static final String USERS_CHECK_EMAIL = "/users/check-email";
-        public static final String USERS_CHECK_NICKNAME = "/users/check-nickname";
+        public static final String AUTH_REFRESH = "/api/auth/refresh";
+        public static final String AUTH_PASSWORD_RESET = "/api/auth/password-reset";
+        public static final String USERS_CHECK_EMAIL = "/api/users/check-email";
+        public static final String USERS_CHECK_NICKNAME = "/api/users/check-nickname";
+        public static final String IMAGES_PRESIGNED_URL = "/api/images/presigned-url";
+        public static final String IMAGES_PUBLIC_URL = "/api/images/public-url";
         public static final String ERROR = "/error";
-        public static final String TERMS = "/terms";
-        public static final String PRIVACY = "/privacy";
+        public static final String POLICY = "/policy";
         
         // 필터 제외 경로 목록
         public static final java.util.List<String> FILTER_EXCLUDED = java.util.List.of(
@@ -72,9 +72,10 @@ public final class Constants {
             AUTH_PASSWORD_RESET,
             USERS_CHECK_EMAIL,
             USERS_CHECK_NICKNAME,
+            IMAGES_PRESIGNED_URL,
+            IMAGES_PUBLIC_URL,
             ERROR,
-            TERMS,
-            PRIVACY
+            POLICY
         );
         
         private ExcludePath() {}

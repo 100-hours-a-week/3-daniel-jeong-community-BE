@@ -11,7 +11,7 @@ import java.util.Set;
 
 /**
  * 이미지 정책 설정
- * - 의도: 확장자/최대 크기/최대 개수/저장 디렉토리 중앙관리
+ * - 의도: 확장자/최대 크기/최대 개수 중앙관리
  * - 설정 소스: application.yml 의 image.*
  */
 @Component
@@ -22,7 +22,6 @@ public class ImageProperties {
 
     private long maxSizeBytes;        // 최대 파일 크기(바이트)
     private int maxPerPost;           // 게시글당 이미지 최대 개수
-    private String baseDir;           // 로컬 저장 루트 디렉토리
     private List<String> allowedExtensions; // 허용 확장자 목록
 
     // 경로 포맷 설정 (String#format 사용)
@@ -56,5 +55,13 @@ public class ImageProperties {
     public boolean isAllowedContentType(String contentType) {
         String extension = extractExtensionFromContentType(contentType);
         return extension != null && getAllowedExtensionSet().contains(extension);
+    }
+    
+    // 허용된 확장자 목록을 문자열로 반환 (에러 메시지용)
+    public String getAllowedExtensionsAsString() {
+        if (allowedExtensions == null || allowedExtensions.isEmpty()) {
+            return "";
+        }
+        return String.join(", ", allowedExtensions);
     }
 }

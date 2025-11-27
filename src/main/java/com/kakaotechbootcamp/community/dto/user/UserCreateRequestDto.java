@@ -39,9 +39,6 @@ public class UserCreateRequestDto {
 	)
 	private String nickname;
 
-    @Size(max = 1024)
-    private String profileImageKey;
-
     /** 비밀번호 확인 검증 */
     @AssertTrue(message = "비밀번호와 비밀번호 확인이 일치해야 합니다")
 	public boolean isPasswordConfirmed() {

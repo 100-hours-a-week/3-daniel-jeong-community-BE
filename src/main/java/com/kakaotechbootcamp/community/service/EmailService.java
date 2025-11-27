@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -53,7 +54,6 @@ public class EmailService {
         }
 
         String code = generateVerificationCode();
-        verificationCodes.put(email, new VerificationCodeInfo(code, currentTime + (emailProperties.getCodeExpirationMinutes() * 60L * 1000)));
         verifiedEmails.remove(email); // 재발송 시 이전 검증 상태 초기화
         emailLastSentTime.put(email, currentTime);
 
@@ -61,8 +61,9 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             
+            helper.setFrom("no-reply@swimwaymakers.site", "Swimwaymakers");
             helper.setTo(email);
-            helper.setSubject("[아무말대잔치] 비밀번호 재설정 인증번호 안내");
+            helper.setSubject("[S.W.M] 비밀번호 재설정 인증번호 안내");
             
             Context context = new Context();
             context.setVariable("code", code);
@@ -72,7 +73,11 @@ public class EmailService {
             helper.setText(htmlContent, true);
             
             mailSender.send(message);
-        } catch (MessagingException e) {
+            
+            // 이메일 발송 성공 후에만 인증번호 저장
+            verificationCodes.put(email, new VerificationCodeInfo(code, currentTime + (emailProperties.getCodeExpirationMinutes() * 60L * 1000)));
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            // 이메일 발송 실패 시 인증번호 저장하지 않음
             throw new RuntimeException("이메일 발송 중 오류가 발생했습니다", e);
         }
 

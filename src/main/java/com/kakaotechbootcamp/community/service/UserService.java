@@ -3,6 +3,7 @@ package com.kakaotechbootcamp.community.service;
 import com.kakaotechbootcamp.community.common.ApiResponse;
 import com.kakaotechbootcamp.community.common.Constants;
 import com.kakaotechbootcamp.community.common.ImageType;
+import com.kakaotechbootcamp.community.common.ImageProperties;
 import com.kakaotechbootcamp.community.config.JwtProperties;
 import com.kakaotechbootcamp.community.dto.user.*;
 import com.kakaotechbootcamp.community.entity.RefreshToken;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
 
@@ -35,6 +37,8 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final ImageUploadService imageUploadService;
+    private final S3Service s3Service;
+    private final ImageProperties imageProperties;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
@@ -46,7 +50,7 @@ public class UserService {
     /**
      * 회원가입
      * - 의도: 이메일/닉네임 중복 검사 후 사용자 생성
-     * - 로직: 프로필 이미지 파일이 있으면 업로드 후 profileImageKey 설정, 기존 objectKey 제공 시 검증 후 설정
+     * - 로직: profileImage가 제공되면 백엔드에서 직접 S3에 업로드 후 설정
      * - 에러: 중복 시 409(Conflict)
      */
     @Transactional
@@ -60,7 +64,34 @@ public class UserService {
         User user = new User(email, passwordEncoder.encode(request.getPassword()), nickname);
         User saved = userRepository.save(user);
 
-        handleProfileImage(saved, profileImage, request.getProfileImageKey());
+        // 프로필 이미지가 있으면 백엔드에서 직접 S3에 업로드
+        if (profileImage != null && !profileImage.isEmpty()) {
+            try {
+                // 파일 검증
+                if (profileImage.getSize() > imageProperties.getMaxSizeBytes()) {
+                    throw new BadRequestException("이미지 최대 크기 " + imageProperties.getMaxSizeBytes() + "바이트를 초과했습니다");
+                }
+                
+                // 확장자 검증
+                String contentType = profileImage.getContentType();
+                String extension = imageProperties.extractExtensionFromContentType(contentType);
+                if (extension == null || !imageProperties.getAllowedExtensionSet().contains(extension)) {
+                    throw new BadRequestException("지원하지 않는 이미지 형식입니다. (" + imageProperties.getAllowedExtensionsAsString() + "만 가능)");
+                }
+                
+                // objectKey 생성
+                String objectKey = imageUploadService.generateObjectKey(ImageType.PROFILE, saved.getId(), profileImage.getOriginalFilename());
+                
+                // S3에 업로드
+                s3Service.uploadFile(objectKey, profileImage);
+                
+                // 사용자에 profileImageKey 설정
+                saved.updateProfileImageKey(objectKey);
+                userRepository.save(saved);
+            } catch (IOException e) {
+                throw new RuntimeException("이미지 업로드 중 오류가 발생했습니다", e);
+            }
+        }
 
         return ApiResponse.created(UserResponseDto.from(saved));
     }
@@ -302,19 +333,6 @@ public class UserService {
         }
     }
 
-    /** 프로필 이미지 처리: 파일 업로드 또는 기존 objectKey 검증 후 설정 */
-    private void handleProfileImage(User user, MultipartFile profileImage, String profileImageKey) {
-        if (profileImage != null && !profileImage.isEmpty()) {
-            var uploadResponse = imageUploadService.uploadMultipart(ImageType.PROFILE, user.getId(), profileImage);
-            user.updateProfileImageKey(uploadResponse.objectKey());
-            userRepository.save(user);
-        } else if (profileImageKey != null && !profileImageKey.trim().isEmpty()) {
-            String trimmedKey = profileImageKey.trim();
-            imageUploadService.validateObjectKey(ImageType.PROFILE, trimmedKey, user.getId());
-            user.updateProfileImageKey(trimmedKey);
-            userRepository.save(user);
-        }
-    }
 
     /** 닉네임 업데이트: 동일 시 중복검사 생략 */
     private void updateNickname(User user, String newNickname, Integer id) {

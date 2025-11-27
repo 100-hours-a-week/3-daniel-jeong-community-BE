@@ -25,7 +25,6 @@ public class PostImage {
     @JoinColumn(name = "post_id", nullable = false)
     private Post post;
 
-    // 로컬 파일 경로 -> S3 Object Key로 구현 예정
     @Column(name = "object_key", length = 1024, nullable = false)
     private String objectKey; 
 

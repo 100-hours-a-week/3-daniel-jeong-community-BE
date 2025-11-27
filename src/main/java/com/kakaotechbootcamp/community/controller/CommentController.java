@@ -17,7 +17,7 @@ import java.util.Map;
  * - 역할: 요청 유효성 처리 및 CommentService 위임
  */
 @RestController
-@RequestMapping("/posts/{postId}/comments")
+@RequestMapping("/api/posts/{postId}/comments")
 @RequiredArgsConstructor
 public class CommentController {
 

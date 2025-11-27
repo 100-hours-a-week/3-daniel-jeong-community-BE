@@ -18,7 +18,7 @@ import lombok.RequiredArgsConstructor;
  * @RequestMapping: 기본 경로 /posts
  */
 @RestController
-@RequestMapping("/posts")
+@RequestMapping("/api/posts")
 @RequiredArgsConstructor
 public class PostController {
 

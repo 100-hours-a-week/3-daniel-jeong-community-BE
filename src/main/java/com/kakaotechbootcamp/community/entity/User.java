@@ -36,7 +36,7 @@ public class User implements SoftDeletable {
     private String nickname;
 
     @Column(name = "profile_image_key", length = 1024)
-    private String profileImageKey; // S3 Object Key 또는 로컬 파일 경로
+    private String profileImageKey;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

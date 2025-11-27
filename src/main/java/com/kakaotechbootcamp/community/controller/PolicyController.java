@@ -6,6 +6,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -30,31 +31,42 @@ import java.util.Map;
  */
 @Slf4j
 @Controller
+@RequestMapping("/policy")
 @RequiredArgsConstructor
 public class PolicyController {
+
+    private static final String POLICY_DIRECTORY = "policy/";
+    private static final String JSON_EXTENSION = ".json";
+    private static final String TEMPLATE_NAME = "policy";
+    private static final String REDIRECT_ROOT = "redirect:/";
+    private static final String DATE_ATTRIBUTE = "date";
+    private static final String DATE_FORMAT = "yyyy년 MM월 dd일";
+    
+    private static final String POLICY_TYPE_TERMS = "terms";
+    private static final String POLICY_TYPE_PRIVACY = "privacy";
 
     private final ObjectMapper objectMapper;
 
     /**
      * 이용약관 페이지
-     * - 경로: GET /terms
+     * - 경로: GET /policy/terms
      * - 파일: classpath:policy/terms.json
      * - 템플릿: policy.html
      */
     @GetMapping("/terms")
     public String terms(Model model) {
-        return loadPolicy("terms", model);
+        return loadPolicy(POLICY_TYPE_TERMS, model);
     }
 
     /**
      * 개인정보처리방침 페이지
-     * - 경로: GET /privacy
+     * - 경로: GET /policy/privacy
      * - 파일: classpath:policy/privacy.json
      * - 템플릿: policy.html
      */
     @GetMapping("/privacy")
     public String privacy(Model model) {
-        return loadPolicy("privacy", model);
+        return loadPolicy(POLICY_TYPE_PRIVACY, model);
     }
 
     /**
@@ -65,12 +77,10 @@ public class PolicyController {
      */
     private String loadPolicy(String type, Model model) {
         try {
-            ClassPathResource resource = new ClassPathResource("policy/" + type + ".json");
+            String resourcePath = POLICY_DIRECTORY + type + JSON_EXTENSION;
+            ClassPathResource resource = new ClassPathResource(resourcePath);
             
-            if (!resource.exists()) {
-                log.warn("정책 파일을 찾을 수 없습니다: {}", resource.getPath());
-                return "redirect:/";
-            }
+            if (!resource.exists()) { return REDIRECT_ROOT; }
 
             try (InputStream inputStream = resource.getInputStream()) {
                 // JSON을 Map<String, Object>로 파싱
@@ -84,16 +94,14 @@ public class PolicyController {
                 policyData.forEach(model::addAttribute);
 
                 // date가 없으면 현재 날짜 자동 추가
-                if (!model.containsAttribute("date")) {
-                    model.addAttribute("date", 
-                        LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일")));
+                if (!model.containsAttribute(DATE_ATTRIBUTE)) {
+                    String currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern(DATE_FORMAT));
+                    model.addAttribute(DATE_ATTRIBUTE, currentDate);
                 }
-
-                return "policy";
+                return TEMPLATE_NAME;
             }
         } catch (IOException e) {
-            log.error("정책 파일 읽기 실패: {}", type, e);
-            return "redirect:/";
+            return REDIRECT_ROOT;
         }
     }
 }

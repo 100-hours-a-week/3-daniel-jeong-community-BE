@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
  * @RequestMapping: 기본 경로 /auth
  */
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
