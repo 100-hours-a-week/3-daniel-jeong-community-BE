@@ -555,7 +555,24 @@ gradle-app.setting
 # Java heap dump
 *.hprof
 
-# Secret file
+# Secret files
 application-secret.yml
+application-test-secret.yml
+*.secret.yml
+*.secret.yaml
+.env
+.env.local
+.env.*.local
+
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+
+# AWS credentials
+.aws/
+aws-credentials
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,java,gradle,intellij,vs
