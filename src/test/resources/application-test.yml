@@ -19,6 +19,18 @@ spring:
   h2:
     console:
       enabled: false
+  # 테스트용 메일 설정 (실제 메일 발송 불필요)
+  mail:
+    host: localhost
+    port: 1025
+    username: test
+    password: test
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
 
 image:
   max-size-bytes: 5242880
@@ -41,14 +53,14 @@ email:
 cors:
   allowed-origins: http://localhost:3000,http://localhost:8080
 
-# 테스트용 AWS S3 설정 (실제 S3 접근 불필요)
+# 테스트용 AWS S3 설정
 aws:
   s3:
     bucket-name: test-bucket
     region: ap-northeast-2
     presigned-url-expiration-minutes: 60
 
-# 테스트용 JWT 설정 (Base64 인코딩된 더미 키)
+# 테스트용 JWT 설정
 jwt:
   secret-key: dGVzdC1zZWNyZXQta2V5LWZvci10ZXN0aW5nLW9ubHktbm90LWZvci1wcm9kdWN0aW9uLXVzZS0zMmNoYXJz
   access-token-ttl-seconds: 3600
