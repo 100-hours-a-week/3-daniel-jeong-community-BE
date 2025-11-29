@@ -1,7 +1,12 @@
+# 테스트 환경 설정
+# 이 파일은 테스트 실행 시 사용되는 설정입니다.
+# 프로덕션 환경과는 별도로 관리됩니다.
+
 spring:
   config:
     import: optional:file:./application-test-secret.yml
   datasource:
+    # 테스트용 H2 인메모리 데이터베이스
     url: jdbc:h2:mem:testdb;MODE=MySQL;DATABASE_TO_LOWER=TRUE
     driver-class-name: org.h2.Driver
   jpa:
@@ -32,17 +37,20 @@ email:
     min-interval-ms: 60000
     code-expiration-minutes: 10
 
+# 테스트용 CORS 설정
 cors:
   allowed-origins: http://localhost:3000,http://localhost:8080
 
+# 테스트용 AWS S3 설정 (실제 S3 접근 불필요)
 aws:
   s3:
     bucket-name: test-bucket
     region: ap-northeast-2
     presigned-url-expiration-minutes: 60
 
+# 테스트용 JWT 설정 (Base64 인코딩된 더미 키)
 jwt:
-  secret-key: test-secret-key-for-testing-only-not-for-production-use
+  secret-key: dGVzdC1zZWNyZXQta2V5LWZvci10ZXN0aW5nLW9ubHktbm90LWZvci1wcm9kdWN0aW9uLXVzZS0zMmNoYXJz
   access-token-ttl-seconds: 3600
   refresh-token-ttl-seconds: 86400
 
