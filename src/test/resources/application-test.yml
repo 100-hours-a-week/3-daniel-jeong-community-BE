@@ -32,3 +32,17 @@ email:
     min-interval-ms: 60000
     code-expiration-minutes: 10
 
+cors:
+  allowed-origins: http://localhost:3000,http://localhost:8080
+
+aws:
+  s3:
+    bucket-name: test-bucket
+    region: ap-northeast-2
+    presigned-url-expiration-minutes: 60
+
+jwt:
+  secret-key: test-secret-key-for-testing-only-not-for-production-use
+  access-token-ttl-seconds: 3600
+  refresh-token-ttl-seconds: 86400
+
