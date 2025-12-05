@@ -17,6 +17,12 @@ public enum ImageType {
      * - 저장 위치 규칙: post/{postId}/images/{filename}
      * - 사용: PostImage.objectKey
      */
-    POST
+    POST,
+    
+    /**
+     * 중고거래 상품 이미지 (다중)
+     * - 저장 위치 규칙: product/{productId}/images/{filename}
+     * - 사용: ProductImage.objectKey
+     */
+    PRODUCT
 }
-

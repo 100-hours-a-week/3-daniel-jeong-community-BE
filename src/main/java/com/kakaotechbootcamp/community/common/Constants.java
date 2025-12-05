@@ -33,6 +33,8 @@ public final class Constants {
         public static final String USERS = "/api/users";
         public static final String POSTS = "/api/posts";
         public static final String IMAGES = "/api/images";
+        public static final String COMPETITIONS = "/api/competitions";
+        public static final String PRODUCTS = "/api/products";
         private ApiPath() {}
     }
     public static final class PagePath {
