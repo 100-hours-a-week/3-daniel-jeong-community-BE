@@ -68,7 +68,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     ) throws IOException, ServletException {
 
         String path = request.getRequestURI();
-        boolean isPublicGet = path.startsWith(Constants.ApiPath.POSTS) && Constants.HttpMethod.GET.equals(request.getMethod());
+        String method = request.getMethod();
+        
+        // 공개 GET 요청 경로 목록 (비회원도 접근 가능)
+        boolean isPublicGet = Constants.HttpMethod.GET.equals(method) && (
+            path.startsWith(Constants.ApiPath.POSTS) ||
+            path.startsWith(Constants.ApiPath.COMPETITIONS) ||
+            path.startsWith(Constants.ApiPath.PRODUCTS)
+        );
+        
         Optional<String> token = extractToken(request);
 
         // 공개 GET 요청: 토큰이 있으면 userId 설정, 없어도 진행
@@ -115,7 +123,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             !path.startsWith(Constants.ApiPath.AUTH) &&
             !path.startsWith(Constants.ApiPath.USERS) &&
             !path.startsWith(Constants.ApiPath.POSTS) &&
-            !path.startsWith(Constants.ApiPath.IMAGES)) {
+            !path.startsWith(Constants.ApiPath.IMAGES) &&
+            !path.startsWith(Constants.ApiPath.COMPETITIONS) &&
+            !path.startsWith(Constants.ApiPath.PRODUCTS)) {
             return true;
         }
         
