@@ -5,35 +5,70 @@ import com.kakaotechbootcamp.community.exception.NotFoundException;
 import com.kakaotechbootcamp.community.common.ImageProperties;
 import com.kakaotechbootcamp.community.exception.BadRequestException;
 import com.kakaotechbootcamp.community.repository.PostRepository;
+import com.kakaotechbootcamp.community.repository.ProductRepository;
 import com.kakaotechbootcamp.community.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
+import java.util.function.Function;
 
 /**
  * 이미지 업로드 서비스
  * 프로필: 고정 파일명 (replace), 게시글: 고유 파일명
  */
 @Service
-@RequiredArgsConstructor
 public class ImageUploadService {
 
     private final UserRepository userRepository;
     private final PostRepository postRepository;
+    private final ProductRepository productRepository;
     private final ImageProperties imageProperties;
+    private final Map<ImageType, Function<Integer, Boolean>> resourceExistenceCheckers;
+
+    // ImageType별 메타데이터
+    private static final Map<ImageType, ImageTypeMetadata> IMAGE_TYPE_METADATA = Map.of(
+        ImageType.PROFILE, new ImageTypeMetadata(
+            "프로필", "userId", "사용자를 찾을 수 없습니다", "user/%d/profile/%s"
+        ),
+        ImageType.POST, new ImageTypeMetadata(
+            "게시글", "postId", "게시글을 찾을 수 없습니다", "post/%d/images/%s"
+        ),
+        ImageType.PRODUCT, new ImageTypeMetadata(
+            "상품", "productId", "상품을 찾을 수 없습니다", "product/%d/images/%s"
+        )
+    );
+
+    // ImageType별 리소스 존재 검증 함수
+    public ImageUploadService(
+            UserRepository userRepository,
+            PostRepository postRepository,
+            ProductRepository productRepository,
+            ImageProperties imageProperties) {
+        this.userRepository = userRepository;
+        this.postRepository = postRepository;
+        this.productRepository = productRepository;
+        this.imageProperties = imageProperties;
+        
+        // 인스턴스 필드가 초기화된 후에 Map 생성
+        this.resourceExistenceCheckers = Map.of(
+            ImageType.PROFILE, userRepository::existsById,
+            ImageType.POST, postRepository::existsById,
+            ImageType.PRODUCT, productRepository::existsById
+        );
+    }
 
     // objectKey 경로 생성
     public String generateObjectKey(ImageType imageType, Integer resourceId, String filename) {
         String extension = extractAndValidateExtension(filename);
         String pathFormat = getPathFormat(imageType);
         
-        if (imageType == ImageType.PROFILE) {
-            return String.format(pathFormat, resourceId, "profile." + extension);
-        } else if (imageType == ImageType.POST) {
-            String safeFilename = sanitizeFilename(filename);
-            return String.format(pathFormat, resourceId, safeFilename);
-        }
-        throw new BadRequestException("지원하지 않는 이미지 타입입니다");
+        String finalFilename = (imageType == ImageType.PROFILE) 
+            ? "profile." + extension 
+            : sanitizeFilename(filename);
+        
+        return String.format(pathFormat, resourceId, finalFilename);
     }
 
     // objectKey 검증 (외부 서비스용)
@@ -47,39 +82,51 @@ public class ImageUploadService {
 
     // 리소스 존재 검증
     public void validateResourceExists(ImageType imageType, Integer resourceId) {
+        ImageTypeMetadata metadata = getMetadata(imageType);
+        
         if (resourceId == null) {
             throw new BadRequestException(
-                    imageType == ImageType.PROFILE ? "프로필 이미지 검증 시 userId는 필수입니다" : "게시글 이미지 검증 시 postId는 필수입니다");
+                String.format("%s 이미지 검증 시 %s는 필수입니다", metadata.typeName, metadata.resourceIdName)
+            );
         }
         
-        boolean exists = (imageType == ImageType.PROFILE)
-                ? userRepository.existsById(resourceId)
-                : postRepository.existsById(resourceId);
-        
-        if (!exists) {
-            throw new NotFoundException(imageType == ImageType.PROFILE ? "사용자를 찾을 수 없습니다" : "게시글을 찾을 수 없습니다");
+        Function<Integer, Boolean> checker = resourceExistenceCheckers.get(imageType);
+        if (checker == null || !checker.apply(resourceId)) {
+            throw new NotFoundException(metadata.notFoundMessage);
         }
     }
 
     // objectKey 경로 규칙 검증
     private void validateObjectKeyPath(ImageType imageType, String objectKey, Integer resourceId) {
+        ImageTypeMetadata metadata = getMetadata(imageType);
         String expectedPrefix = String.format(getPathFormat(imageType), resourceId, "");
+        
         if (!objectKey.startsWith(expectedPrefix)) {
-            String typeName = imageType == ImageType.PROFILE ? "프로필" : "게시글";
-            throw new BadRequestException(String.format("%s 이미지 objectKey는 '%s'로 시작해야 합니다", typeName, expectedPrefix));
+            throw new BadRequestException(
+                String.format("%s 이미지 objectKey는 '%s'로 시작해야 합니다", metadata.typeName, expectedPrefix)
+            );
         }
     }
 
     // 경로 포맷 가져오기
     private String getPathFormat(ImageType imageType) {
-        String format = (imageType == ImageType.PROFILE)
-                ? imageProperties.getProfilePathFormat()
-                : imageProperties.getPostPathFormat();
+        ImageTypeMetadata metadata = getMetadata(imageType);
+        String format = switch (imageType) {
+            case PROFILE -> imageProperties.getProfilePathFormat();
+            case POST -> imageProperties.getPostPathFormat();
+            case PRODUCT -> null; // 설정에 없으면 기본값 사용
+        };
         
-        if (format == null || format.isBlank()) {
-            return imageType == ImageType.PROFILE ? "user/%d/profile/%s" : "post/%d/images/%s";
+        return (format != null && !format.isBlank()) ? format : metadata.defaultPathFormat;
+    }
+
+    // 메타데이터 가져오기
+    private ImageTypeMetadata getMetadata(ImageType imageType) {
+        ImageTypeMetadata metadata = IMAGE_TYPE_METADATA.get(imageType);
+        if (metadata == null) {
+            throw new BadRequestException("지원하지 않는 이미지 타입입니다");
         }
-        return format;
+        return metadata;
     }
 
     // 확장자 추출 및 검증
@@ -105,4 +152,14 @@ public class ImageUploadService {
     private String sanitizeFilename(String filename) {
         return filename.replaceAll("[/\\\\]", "").replaceAll("^\\.+", "").trim();
     }
+
+    /**
+     * ImageType별 메타데이터
+     */
+    private record ImageTypeMetadata(
+        String typeName,              // 타입 이름 (에러 메시지용)
+        String resourceIdName,        // 리소스 ID 이름 (에러 메시지용)
+        String notFoundMessage,       // 리소스 미존재 에러 메시지
+        String defaultPathFormat      // 기본 경로 포맷
+    ) {}
 }
