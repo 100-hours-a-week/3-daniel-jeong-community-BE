@@ -1,0 +1,65 @@
+# Build artifacts
+.gradle
+build
+bin
+*.class
+*.jar
+!build/libs/*.jar
+
+# IDE
+.idea
+.vscode
+*.iml
+*.ipr
+*.iws
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+.github
+
+# Documentation
+README.md
+HELP.md
+
+# Gradle
+gradle
+gradlew
+gradlew.bat
+settings.gradle
+build.gradle
+
+# Source code (only JAR is needed)
+src
+
+# Test files
+**/test/
+**/*Test.java
+**/*Tests.java
+
+# Secret files
+application-secret.yml
+*.secret.yml
+*.secret.yaml
+.env
+.env.*
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yml

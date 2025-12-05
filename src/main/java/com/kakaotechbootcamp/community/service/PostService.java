@@ -84,7 +84,7 @@ public class PostService {
         Integer nextCursor = items.isEmpty() ? null : items.get(items.size() - 1).postId();
         boolean hasNext = items.size() == pageSize;
 
-        return ApiResponse.modified(new PostResponseDto(items, nextCursor, hasNext));
+        return ApiResponse.success(new PostResponseDto(items, nextCursor, hasNext));
     }
 
     /**
@@ -117,7 +117,7 @@ public class PostService {
         
         boolean isLiked = (currentUserId != null) && postLikeRepository.existsByIdPostIdAndIdUserId(postId, currentUserId);
 
-        return ApiResponse.modified(PostDetailDto.from(post, images, PostStatResponseDto.from(responseStat), comments, isLiked));
+        return ApiResponse.success(PostDetailDto.from(post, images, PostStatResponseDto.from(responseStat), comments, isLiked));
     }
 
     /**

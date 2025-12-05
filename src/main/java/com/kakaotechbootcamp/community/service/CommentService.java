@@ -58,7 +58,7 @@ public class CommentService {
         Page<CommentResponseDto> pageResult = commentRepository.findAllByPostId(postId, pageable)
                 .map(CommentResponseDto::from);
 
-        return ApiResponse.modified(pageResult);
+        return ApiResponse.success(pageResult);
     }
 
     /**

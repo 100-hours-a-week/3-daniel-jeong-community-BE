@@ -58,7 +58,7 @@ public class PostStatService {
     public ApiResponse<PostStatResponseDto> getByPostId(Integer postId) {
         PostStat stat = postStatRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException("통계를 찾을 수 없습니다"));
-        return ApiResponse.modified(PostStatResponseDto.from(stat));
+        return ApiResponse.success(PostStatResponseDto.from(stat));
     }
 
     /**

@@ -9,11 +9,10 @@ import com.kakaotechbootcamp.community.entity.PostImage;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 게시글 상세 응답 DTO
- * - 의도: 본문/작성자/이미지/통계/댓글을 통합 제공
+ * - 의도: 본문/작성자/이미지/통계/댓글 제공
  */
 public record PostDetailDto(
         Integer postId,
@@ -30,7 +29,7 @@ public record PostDetailDto(
     public static PostDetailDto from(Post post, List<PostImage> images, PostStatResponseDto stats, List<Comment> comments, boolean isLiked) {
         List<String> keys = images == null ? Collections.emptyList() : images.stream()
                 .map(PostImage::getObjectKey)
-                .collect(Collectors.toList());
+                .toList();
         List<CommentResponseDto> commentDtos = comments == null ? Collections.emptyList() : comments.stream()
                 .map(CommentResponseDto::from)
                 .toList();
