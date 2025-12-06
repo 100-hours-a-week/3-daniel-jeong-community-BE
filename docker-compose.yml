@@ -3,6 +3,8 @@ services:
     image: ${ECR_BACKEND_IMAGE}
     container_name: community-backend
     restart: unless-stopped
+    ports:
+      - "8080:8080"
     environment:
       SPRING_CONFIG_IMPORT: file:/app/application-secret.yml
     volumes:
