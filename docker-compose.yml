@@ -4,13 +4,9 @@ services:
     container_name: community-backend
     restart: unless-stopped
     environment:
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
-      SPRING_CONFIG_IMPORT: ${SPRING_CONFIG_IMPORT}
+      SPRING_CONFIG_IMPORT: file:/app/application-secret.yml
     volumes:
-      - ./logs:/app/logs
+      - backend_logs:/app/logs
       - ${SECRETS_PATH}:/app/application-secret.yml:ro
     networks:
       - community-network
@@ -19,3 +15,6 @@ networks:
   community-network:
     name: community-network
     external: true
+
+volumes:
+  backend_logs:
