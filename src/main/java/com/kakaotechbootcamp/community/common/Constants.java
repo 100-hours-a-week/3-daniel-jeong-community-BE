@@ -67,6 +67,7 @@ public final class Constants {
         public static final String IMAGES_PUBLIC_URL = "/api/images/public-url";
         public static final String ERROR = "/error";
         public static final String POLICY = "/policy";
+        public static final String HEALTH = "/api/health";
         
         // 필터 제외 경로 목록
         public static final java.util.List<String> FILTER_EXCLUDED = java.util.List.of(
@@ -77,7 +78,8 @@ public final class Constants {
             IMAGES_PRESIGNED_URL,
             IMAGES_PUBLIC_URL,
             ERROR,
-            POLICY
+            POLICY,
+            HEALTH
         );
         
         private ExcludePath() {}

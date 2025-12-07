@@ -1,45 +1,41 @@
 /* CSS 변수 정의 */
 :root {
-    /* 색상 */
-    --primary-color: #3b82f6;
-    --primary-hover: #2563eb;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --text-muted: #8b95a1;
-    --white: #ffffff;
-    --border-light: rgba(0, 0, 0, 0.08);
+    /* 기본 색상 */
+    --primary-light: #3B82F6;
     
-    /* Theme Colors */
-    --lg-primary: #2563EB;
-    --lg-primary-light: #3B82F6;
-    --lg-secondary: #1D4ED8;
-    --lg-glass-bg: rgba(255, 255, 255, 0.18);
-    --lg-glass-bg-hover: rgba(255, 255, 255, 0.25);
-    --lg-glass-border: rgba(255, 255, 255, 0.35);
-    --lg-glass-border-light: rgba(255, 255, 255, 0.45);
-    --lg-text-on-glass: #FFFFFF;
-    --lg-text-accent: #FFFFFF;
-    --theme-text-dark: #FFFFFF;
-    --theme-text-light: rgba(255, 255, 255, 0.9);
-    --theme-text-muted: rgba(255, 255, 255, 0.8);
-    --theme-card-bg: rgba(255, 255, 255, 0.08);
-    --theme-card-hover-bg: rgba(255, 255, 255, 0.25);
-    --theme-border: rgba(255, 255, 255, 0.25);
-    --theme-border-light: rgba(255, 255, 255, 0.2);
-    --theme-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    /* 유리 효과 색상 */
+    --glass-bg: rgba(255, 255, 255, 0.18);
+    --glass-bg-hover: rgba(255, 255, 255, 0.25);
+    --glass-border: rgba(255, 255, 255, 0.35);
     
-    /* Blur Values */
-    --lg-blur-md: 16px;
-    --lg-blur-lg: 24px;
+    /* 텍스트 색상 */
+    --text-on-glass: #FFFFFF;
+    --text-dark: var(--text-on-glass);
+    --text-light: rgba(255, 255, 255, 0.9);
+    --text-muted: rgba(255, 255, 255, 0.8);
+    --text-accent: var(--text-on-glass);
     
-    /* Border Radius */
-    --lg-radius-md: 12px;
-    --lg-radius-lg: 16px;
-    --lg-radius-xl: 24px;
+    /* 카드 색상 */
+    --card-bg: rgba(255, 255, 255, 0.08);
+    
+    /* 테두리 */
+    --border: rgba(255, 255, 255, 0.25);
+    --border-light: rgba(255, 255, 255, 0.2);
+    
+    /* 그림자 */
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    
+    /* 모서리 둥글기 */
+    --border-radius-md: 12px;
+    --border-radius-lg: 16px;
+    --border-radius-xl: 24px;
+    
+    /* 블러 값 */
+    --blur-md: 16px;
+    --blur-lg: 24px;
     
     /* 간격 */
     --spacing-sm: 8px;
-    --spacing-md: 12px;
     --spacing-lg: 16px;
     --spacing-xl: 20px;
     --spacing-2xl: 24px;
@@ -57,12 +53,15 @@
     --font-size-3xl: 20px;
     
     /* 애니메이션 */
-    --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-slow: 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     
     /* 레이아웃 */
     --header-height: 72px;
+    
+    /* Z-Index */
+    --z-content: 100;
+    --z-header: 1000;
 }
 
 /* 기본 스타일 */
@@ -75,7 +74,7 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
     background: linear-gradient(180deg, #1E3A8A 0%, #1E40AF 50%, #2563EB 100%);
-    color: var(--lg-text-on-glass);
+    color: var(--text-on-glass);
     line-height: 1.6;
     min-height: 100vh;
     position: relative;
@@ -89,11 +88,11 @@ body {
     left: 0;
     right: 0;
     height: var(--header-height);
-    background: var(--lg-glass-bg);
-    backdrop-filter: blur(var(--lg-blur-lg));
-    -webkit-backdrop-filter: blur(var(--lg-blur-lg));
-    border-bottom: 1px solid var(--lg-glass-border);
-    z-index: 1000;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur-lg));
+    -webkit-backdrop-filter: blur(var(--blur-lg));
+    border-bottom: 1px solid var(--glass-border);
+    z-index: var(--z-header);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -119,14 +118,14 @@ body {
     font-size: 24px;
     cursor: pointer;
     padding: var(--spacing-sm);
-    border-radius: var(--lg-radius-md);
+    border-radius: var(--border-radius-md);
     user-select: none;
-    color: var(--lg-text-on-glass);
+    color: var(--text-on-glass);
     transition: var(--transition-fast);
 }
 
 .header-backward-image:hover {
-    background: var(--lg-glass-bg-hover);
+    background: var(--glass-bg-hover);
 }
 
 .title {
@@ -139,7 +138,7 @@ body {
 .title-name a {
     font-size: var(--font-size-3xl);
     font-weight: 700;
-    color: var(--lg-text-accent);
+    color: var(--text-accent);
     text-decoration: none;
     letter-spacing: -0.5px;
 }
@@ -157,7 +156,7 @@ body {
     padding-bottom: var(--spacing-5xl);
     min-height: 100vh;
     position: relative;
-    z-index: 100;
+    z-index: var(--z-content);
 }
 
 .container {
@@ -167,12 +166,12 @@ body {
 }
 
 .main-content {
-    background: var(--theme-card-bg);
-    backdrop-filter: blur(var(--lg-blur-lg));
-    -webkit-backdrop-filter: blur(var(--lg-blur-lg));
-    border: 1px solid var(--theme-border);
-    border-radius: var(--lg-radius-xl);
-    box-shadow: var(--theme-shadow);
+    background: var(--card-bg);
+    backdrop-filter: blur(var(--blur-lg));
+    -webkit-backdrop-filter: blur(var(--blur-lg));
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-xl);
+    box-shadow: var(--shadow);
     padding: var(--spacing-5xl) var(--spacing-4xl);
     margin: var(--spacing-2xl) auto;
     position: relative;
@@ -187,7 +186,7 @@ body {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, var(--theme-border), transparent);
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
 }
 
 /* 페이지 제목 */
@@ -195,20 +194,20 @@ body {
     text-align: center;
     margin-bottom: var(--spacing-4xl);
     padding-bottom: var(--spacing-xl);
-    border-bottom: 1px solid var(--theme-border-light);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .page-title h1 {
     font-size: clamp(1.75rem, 4vw, 2rem);
     font-weight: 700;
-    color: var(--white);
+    color: var(--text-dark);
     margin-bottom: var(--spacing-sm);
     letter-spacing: -0.5px;
 }
 
 .page-title p {
     font-size: var(--font-size-lg);
-    color: var(--white);
+    color: var(--text-light);
     margin: 0;
 }
 
@@ -218,18 +217,18 @@ body {
 }
 
 .content-section h2 {
-    color: var(--white);
+    color: var(--text-dark);
     font-size: var(--font-size-2xl);
     font-weight: 600;
     margin-bottom: var(--spacing-lg);
     padding-bottom: var(--spacing-sm);
-    border-bottom: 1px solid var(--theme-border-light);
+    border-bottom: 1px solid var(--border-light);
 }
 
 .content-section p {
     margin-bottom: var(--spacing-lg);
     text-align: justify;
-    color: var(--white);
+    color: var(--text-dark);
     line-height: 1.7;
     font-size: var(--font-size-base);
 }
@@ -241,25 +240,25 @@ body {
 
 .content-section li {
     margin-bottom: var(--spacing-sm);
-    color: var(--white);
+    color: var(--text-dark);
     line-height: 1.7;
     font-size: var(--font-size-base);
 }
 
 .content-section strong {
-    color: var(--white);
+    color: var(--text-dark);
     font-weight: 600;
 }
 
 /* 하이라이트 박스 */
 .highlight {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
-    backdrop-filter: blur(var(--lg-blur-md));
-    -webkit-backdrop-filter: blur(var(--lg-blur-md));
+    backdrop-filter: blur(var(--blur-md));
+    -webkit-backdrop-filter: blur(var(--blur-md));
     padding: var(--spacing-xl);
-    border-radius: var(--lg-radius-lg);
-    border: 1px solid var(--lg-glass-border);
-    border-left: 4px solid var(--lg-primary-light);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--glass-border);
+    border-left: 4px solid var(--primary-light);
     margin: var(--spacing-xl) 0;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
@@ -267,18 +266,18 @@ body {
 .highlight p {
     margin-bottom: var(--spacing-sm);
     font-weight: 500;
-    color: var(--white);
+    color: var(--text-dark);
 }
 
 .highlight p:last-child {
     margin-bottom: 0;
     font-size: var(--font-size-sm);
-    color: var(--white);
+    color: var(--text-dark);
 }
 
 /* 날짜 스타일 */
 .date {
-    color: var(--white);
+    color: var(--text-muted);
     font-size: var(--font-size-sm);
     font-style: italic;
     margin-bottom: var(--spacing-lg);
