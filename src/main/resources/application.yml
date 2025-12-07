@@ -1,0 +1,35 @@
+spring:
+  config:
+    import: optional:application-secret.yml
+
+  jpa:
+    hibernate:
+      ddl-auto: none   # 개발 중에는 create / create-drop / update 중 선택
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    root: info
+    org.springframework: warn
+    org.hibernate: warn
+
+# 이미지 정책 설정
+image:
+  max-size-bytes: 5242880         # 5MB
+  max-per-post: 10                # 게시글당 최대 이미지 개수
+  allowed-extensions:             # 허용 확장자
+    - jpeg
+    - jpg
+    - png
+    - gif
+    - webp
+  profile-path-format: "user/%d/profile/%s" # 경로 포맷 (String.format)
+  post-path-format: "post/%d/images/%s"     # 경로 포맷 (String.format)
+
+# 이메일 설정
+email:
+  password-reset:
+    min-interval-ms: 60000  # 비밀번호 재설정 인증번호 발송 최소 간격 (밀리초)
+    code-expiration-minutes: 10  # 인증번호 유효 시간 (분)

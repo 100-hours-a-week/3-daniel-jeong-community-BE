@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div class="header-container" th:fragment="headerFragment">
+        <div class="header-backward-container" th:if="${showBackButton != false}">
+            <div class="header-backward-image" onclick="history.back();">←</div>
+        </div>
+        <div class="title">
+            <div class="title-name">
+                <a th:href="${homeUrl} ?: @{/}" th:text="${siteTitle} ?: 'S.W.M'">S.W.M</a>
+            </div>
+        </div>
+        <div class="header-profile-container" th:if="${profileContent != null}">
+            <div th:utext="${profileContent}"></div>
+        </div>
+    </div>
+</body>
+</html>
+

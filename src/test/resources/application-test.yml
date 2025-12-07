@@ -1,0 +1,68 @@
+# 테스트 환경 설정
+# 이 파일은 테스트 실행 시 사용되는 설정입니다.
+# 프로덕션 환경과는 별도로 관리됩니다.
+
+spring:
+  config:
+    import: optional:file:./application-test-secret.yml
+  datasource:
+    # 테스트용 H2 인메모리 데이터베이스
+    url: jdbc:h2:mem:testdb;MODE=MySQL;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  h2:
+    console:
+      enabled: false
+  # 테스트용 메일 설정 (실제 메일 발송 불필요)
+  mail:
+    host: localhost
+    port: 1025
+    username: test
+    password: test
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+image:
+  max-size-bytes: 5242880
+  max-per-post: 10
+  allowed-extensions:
+    - jpeg
+    - jpg
+    - png
+    - gif
+    - webp
+  profile-path-format: "user/%d/profile/%s"
+  post-path-format: "post/%d/images/%s"
+
+email:
+  password-reset:
+    min-interval-ms: 60000
+    code-expiration-minutes: 10
+
+# 테스트용 CORS 설정
+cors:
+  allowed-origins: http://localhost:3000,http://localhost:8080
+
+# 테스트용 AWS S3 설정
+aws:
+  s3:
+    bucket-name: test-bucket
+    region: ap-northeast-2
+    presigned-url-expiration-minutes: 60
+
+# 테스트용 JWT 설정
+jwt:
+  secret-key: dGVzdC1zZWNyZXQta2V5LWZvci10ZXN0aW5nLW9ubHktbm90LWZvci1wcm9kdWN0aW9uLXVzZS0zMmNoYXJz
+  access-token-ttl-seconds: 3600
+  refresh-token-ttl-seconds: 86400
+
