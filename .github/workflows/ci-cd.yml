@@ -226,7 +226,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
             --document-name "AWS-RunShellScript" \
-            --parameters "commands=[\"cd /home/ubuntu/prod && export ECR_BACKEND_IMAGE=$ECR_BACKEND_IMAGE && sudo -E docker compose pull backend && sudo -E docker compose up -d backend\"]" \
+            --parameters "commands=[\"cd /home/ubuntu/prod && export ECR_BACKEND_IMAGE=$ECR_BACKEND_IMAGE && sudo -E docker compose pull backend && sudo -E docker compose up -d --force-recreate backend\"]" \
             --output text \
             --query 'Command.CommandId')
           echo "::add-mask::$COMMAND_ID"
